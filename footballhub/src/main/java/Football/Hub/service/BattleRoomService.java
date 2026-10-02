@@ -167,7 +167,9 @@ public class BattleRoomService {
         }
 
         if (playerName == null || playerName.isBlank()) {
-            throw new IllegalArgumentException("Player name is required.");
+            throw new IllegalArgumentException(
+                    "Player name is required."
+            );
         }
 
         List<BattleParticipant> participants =
@@ -197,7 +199,24 @@ public class BattleRoomService {
                         room
                 );
 
-        return battleParticipantRepository.save(participant);
+        BattleParticipant savedParticipant =
+                battleParticipantRepository.save(participant);
+
+        long playerCount =
+                battleParticipantRepository.countByRoomId(room.getId());
+
+        /*
+         * If a category was already selected and there are now
+         * at least 2 players, automatically start the battle.
+         */
+        if (room.getCategory() != null &&
+                !room.getCategory().isBlank() &&
+                playerCount >= 2) {
+
+            startBattle(roomCode);
+        }
+
+        return savedParticipant;
     }
 
     public List<BattleParticipant> getParticipants(String roomCode) {
@@ -213,14 +232,37 @@ public class BattleRoomService {
         List<BattleCategory> databaseCategories =
                 battleCategoryRepository.findByActiveTrue();
 
-        if (!databaseCategories.isEmpty()) {
-            return databaseCategories;
-        }
-
+        /*
+         * Always use the full default category list.
+         *
+         * This prevents the frontend from showing categories
+         * that the backend cannot actually accept.
+         */
         List<BattleCategory> categories = new ArrayList<>();
 
         for (String name : DEFAULT_CATEGORIES) {
-            categories.add(new BattleCategory(name));
+
+            boolean existsInDatabase =
+                    databaseCategories.stream()
+                            .anyMatch(item ->
+                                    item.getName()
+                                            .equalsIgnoreCase(name));
+
+            if (existsInDatabase) {
+                BattleCategory databaseCategory =
+                        databaseCategories.stream()
+                                .filter(item ->
+                                        item.getName()
+                                                .equalsIgnoreCase(name))
+                                .findFirst()
+                                .orElse(null);
+
+                if (databaseCategory != null) {
+                    categories.add(databaseCategory);
+                }
+            } else {
+                categories.add(new BattleCategory(name));
+            }
         }
 
         return categories;
@@ -257,7 +299,25 @@ public class BattleRoomService {
 
         room.setCategory(category);
 
-        return battleRoomRepository.save(room);
+        BattleRoom savedRoom =
+                battleRoomRepository.save(room);
+
+        long playerCount =
+                battleParticipantRepository.countByRoomId(
+                        room.getId()
+                );
+
+        /*
+         * Automatically start the battle as soon as:
+         *
+         * 1. A valid category has been selected
+         * 2. At least 2 players are in the room
+         */
+        if (playerCount >= 2) {
+            return startBattle(roomCode);
+        }
+
+        return savedRoom;
     }
 
     public BattleRoom setRandomCategory(String roomCode) {
@@ -285,7 +345,22 @@ public class BattleRoomService {
 
         room.setCategory(selected.getName());
 
-        return battleRoomRepository.save(room);
+        BattleRoom savedRoom =
+                battleRoomRepository.save(room);
+
+        long playerCount =
+                battleParticipantRepository.countByRoomId(
+                        room.getId()
+                );
+
+        /*
+         * Random category follows the same automatic-start rule.
+         */
+        if (playerCount >= 2) {
+            return startBattle(roomCode);
+        }
+
+        return savedRoom;
     }
 
     public BattleRoom startBattle(String roomCode) {
@@ -307,7 +382,9 @@ public class BattleRoomService {
         }
 
         long playerCount =
-                battleParticipantRepository.countByRoomId(room.getId());
+                battleParticipantRepository.countByRoomId(
+                        room.getId()
+                );
 
         if (playerCount < 2) {
             throw new IllegalStateException(
@@ -318,11 +395,17 @@ public class BattleRoomService {
         room.setStatus(BattleRoomStatus.BUILDING);
 
         List<BattleParticipant> participants =
-                battleParticipantRepository.findByRoomId(room.getId());
+                battleParticipantRepository
+                        .findByRoomId(room.getId());
 
         for (BattleParticipant participant : participants) {
-            participant.setStatus(BattleParticipantStatus.BUILDING);
+
+            participant.setStatus(
+                    BattleParticipantStatus.BUILDING
+            );
+
             participant.setSubmitted(false);
+
             battleParticipantRepository.save(participant);
         }
 
@@ -379,21 +462,27 @@ public class BattleRoomService {
 
         participant.setSquad(squad);
         participant.setSubmitted(true);
-        participant.setStatus(BattleParticipantStatus.SUBMITTED);
+        participant.setStatus(
+                BattleParticipantStatus.SUBMITTED
+        );
 
         BattleParticipant savedParticipant =
                 battleParticipantRepository.save(participant);
 
         long totalPlayers =
-                battleParticipantRepository.countByRoomId(room.getId());
+                battleParticipantRepository
+                        .countByRoomId(room.getId());
 
         long submittedPlayers =
                 battleParticipantRepository
-                        .countByRoomIdAndSubmittedTrue(room.getId());
+                        .countByRoomIdAndSubmittedTrue(
+                                room.getId()
+                        );
 
         if (submittedPlayers == totalPlayers) {
 
             room.setStatus(BattleRoomStatus.VOTING);
+
             battleRoomRepository.save(room);
 
             List<BattleParticipant> allParticipants =
@@ -401,7 +490,11 @@ public class BattleRoomService {
                             .findByRoomId(room.getId());
 
             for (BattleParticipant item : allParticipants) {
-                item.setStatus(BattleParticipantStatus.VOTING);
+
+                item.setStatus(
+                        BattleParticipantStatus.VOTING
+                );
+
                 battleParticipantRepository.save(item);
             }
         }
@@ -411,25 +504,34 @@ public class BattleRoomService {
 
     private String generateRoomCode() {
 
-        String characters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        String characters =
+                "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
         Random random = new Random();
 
         String code;
 
         do {
-            StringBuilder builder = new StringBuilder();
+
+            StringBuilder builder =
+                    new StringBuilder();
 
             for (int i = 0; i < 6; i++) {
+
                 builder.append(
                         characters.charAt(
-                                random.nextInt(characters.length())
+                                random.nextInt(
+                                        characters.length()
+                                )
                         )
                 );
             }
 
             code = builder.toString();
 
-        } while (battleRoomRepository.existsByRoomCode(code));
+        } while (
+                battleRoomRepository.existsByRoomCode(code)
+        );
 
         return code;
     }

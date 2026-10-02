@@ -111,6 +111,10 @@ function Home() {
               Football Alphabet
             </Link>
 
+            <Link to="/football-who-am-i" className="secondary-button">
+              Football Who Am I
+            </Link>
+
           </div>
 
         </div>
@@ -165,6 +169,15 @@ function Home() {
               Race the clock and name footballers for every letter.
             </p>
             <span>Play Alphabet →</span>
+          </Link>
+
+          <Link to="/football-who-am-i" className="feature-card">
+            <div className="feature-icon">❓</div>
+            <h3>Football Who Am I</h3>
+            <p>
+              Guess the mystery footballer using clues before the others do.
+            </p>
+            <span>Play Who Am I →</span>
           </Link>
 
         </div>

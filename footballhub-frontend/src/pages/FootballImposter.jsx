@@ -396,12 +396,8 @@ function FootballImposter() {
             </button>
 
             <div className="imposter-count-box">
-              <h3>Number of Imposters</h3>
+              <h3>Number of Imposters:</h3>
 
-              <p>
-                With {cleanNames.length} players,
-                choose up to {maxImposters} imposters.
-              </p>
 
               <div className="category-list">
                 {Array.from(

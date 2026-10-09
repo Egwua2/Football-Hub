@@ -66,13 +66,15 @@ function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
 }
 
+function getOrdinal(number) {
+  if (number === 1) return "1st";
+  if (number === 2) return "2nd";
+  if (number === 3) return "3rd";
+  return `${number}th`;
+}
+
 function FootballWhoAmI() {
-  const [names, setNames] = useState([
-    "Player 1",
-    "Player 2",
-    "Player 3",
-    "Player 4"
-  ]);
+  const [names, setNames] = useState(["", "", "", ""]);
 
   const [difficulty, setDifficulty] = useState("Easy");
   const [game, setGame] = useState(null);
@@ -88,10 +90,7 @@ function FootballWhoAmI() {
   const [error, setError] = useState("");
 
   const cleanNames = useMemo(
-    () =>
-      names.map(
-        (name, index) => name.trim() || `Player ${index + 1}`
-      ),
+    () => names.map((name) => name.trim()),
     [names]
   );
 
@@ -106,10 +105,7 @@ function FootballWhoAmI() {
   function addPlayer() {
     if (names.length >= 10) return;
 
-    setNames((current) => [
-      ...current,
-      `Player ${current.length + 1}`
-    ]);
+    setNames((current) => [...current, ""]);
   }
 
   function removePlayer(index) {
@@ -121,6 +117,11 @@ function FootballWhoAmI() {
   }
 
   function startGame() {
+    if (cleanNames.some((name) => !name)) {
+      setError("Please enter a name for every player.");
+      return;
+    }
+
     if (cleanNames.length < 2) {
       setError("You need at least 2 players.");
       return;
@@ -780,110 +781,86 @@ function FootballWhoAmI() {
 
       {stage === "results" && game && (
         <section className="game-grid">
-
           <div className="game-card wide who-am-i-result">
-
-            <span className="step">
-              GAME OVER
-            </span>
-
-            <div className="winner-icon">
-              🏆
+            <div className="who-am-i-result-header">
+              <span className="who-am-i-result-kicker">FULL TIME · WHO AM I?</span>
+              <div className="winner-icon">🏆</div>
+              <h2>Final Results</h2>
+              <p>The game is over. Here is how everyone finished.</p>
             </div>
 
-            <h2>
-              Final Results
-            </h2>
-
-            <p>
-              The game is over. Everyone either guessed their
-              footballer or was eliminated.
-            </p>
-
-
             {finishOrder.length > 0 && (
-              <div className="who-am-i-finish-order">
-
-                <h3>🏆 Finishing Order</h3>
-
-                {finishOrder.map((playerIndex, index) => {
-                  const player =
-                    game.playerStates[playerIndex];
-
-                  return (
-                    <div
-                      className="who-am-i-finish-row"
-                      key={player.playerName}
-                    >
-
-                      <strong>
-                        {index === 0
-                          ? "🥇"
-                          : index === 1
-                            ? "🥈"
-                            : index === 2
-                              ? "🥉"
-                              : `#${index + 1}`}
-                      </strong>
-
-                      <span>
-                        {player.playerName}
-                      </span>
-
-                      <small>
-                        {player.footballer}
-                      </small>
-
-                    </div>
-                  );
-                })}
-
+              <div className="who-am-i-winner-card">
+                <span>🏆 WINNER</span>
+                <strong>{game.playerStates[finishOrder[0]].playerName}</strong>
+                <small>
+                  Correctly identified{" "}
+                  <b>{game.playerStates[finishOrder[0]].footballer}</b>
+                </small>
               </div>
             )}
 
-
-            <div className="who-am-i-final-players">
-
-              <h3>All Players</h3>
-
-              {game.playerStates.map((player) => (
-
-                <div
-                  className="who-am-i-final-player"
-                  key={player.playerName}
-                >
-
-                  <strong>
-                    {player.playerName}
-                  </strong>
-
-                  <span>
-                    {player.correct
-                      ? `🏅 Finished #${player.placement}`
-                      : "❌ Eliminated"}
-                  </span>
-
-                  <small>
-                    Secret: {player.footballer}
-                  </small>
-
+            {finishOrder.length > 0 && (
+              <div className="who-am-i-finish-order">
+                <div className="who-am-i-section-heading">
+                  <span>FINAL STANDINGS</span>
+                  <h3>Finishing Order</h3>
                 </div>
 
-              ))}
+                <div className="who-am-i-podium">
+                  {finishOrder.map((playerIndex, index) => {
+                    const player = game.playerStates[playerIndex];
+                    const podiumClass =
+                      index === 0 ? "podium-first" :
+                      index === 1 ? "podium-second" :
+                      index === 2 ? "podium-third" : "podium-other";
 
+                    return (
+                      <div className={`who-am-i-podium-card ${podiumClass}`} key={player.playerName}>
+                        <div className="podium-medal">
+                          {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `#${index + 1}`}
+                        </div>
+                        <strong>{player.playerName}</strong>
+                        <span>{player.footballer}</span>
+                        <small>{getOrdinal(index + 1)} place</small>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="who-am-i-final-players">
+              <div className="who-am-i-section-heading">
+                <span>FULL BREAKDOWN</span>
+                <h3>Player Results</h3>
+              </div>
+
+              <div className="who-am-i-final-player-list">
+                {game.playerStates.map((player) => (
+                  <div
+                    className={player.correct ? "who-am-i-final-player correct" : "who-am-i-final-player eliminated"}
+                    key={player.playerName}
+                  >
+                    <div className="final-player-main">
+                      <strong>{player.playerName}</strong>
+                      <span>
+                        {player.correct ? `🏅 Finished ${getOrdinal(player.placement)}` : "❌ Eliminated"}
+                      </span>
+                    </div>
+                    <div className="final-player-secret">
+                      <small>Secret footballer</small>
+                      <strong>{player.footballer}</strong>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-
-            <button
-              type="button"
-              className="game-button"
-              onClick={resetGame}
-            >
-              Play Again
-            </button>
-
+            <div className="who-am-i-result-actions">
+              <button type="button" className="game-button" onClick={resetGame}>Play Again</button>
+            </div>
           </div>
-
         </section>
       )}
 

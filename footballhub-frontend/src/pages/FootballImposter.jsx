@@ -65,12 +65,7 @@ function shuffle(items) {
 }
 
 function FootballImposter() {
-  const [names, setNames] = useState([
-    "Player 1",
-    "Player 2",
-    "Player 3",
-    "Player 4"
-  ]);
+  const [names, setNames] = useState(["", "", "", ""]);
 
   const [category, setCategory] = useState("Popular Players");
   const [hardMode, setHardMode] = useState(false);
@@ -97,10 +92,7 @@ function FootballImposter() {
   const [error, setError] = useState("");
 
   const cleanNames = useMemo(
-    () =>
-      names.map(
-        (name, index) => name.trim() || `Player ${index + 1}`
-      ),
+    () => names.map((name) => name.trim()),
     [names]
   );
 
@@ -120,10 +112,7 @@ function FootballImposter() {
   function addPlayer() {
     if (names.length >= 10) return;
 
-    setNames((current) => [
-      ...current,
-      `Player ${current.length + 1}`
-    ]);
+    setNames((current) => [...current, ""]);
   }
 
   function removePlayer(index) {
@@ -139,6 +128,11 @@ function FootballImposter() {
   }
 
   function startGame() {
+    if (cleanNames.some((name) => !name)) {
+      setError("Please enter a name for every player.");
+      return;
+    }
+
     if (cleanNames.length < 3) {
       setError("You need at least 3 players.");
       return;
@@ -371,6 +365,8 @@ function FootballImposter() {
                         e.target.value
                       )
                     }
+                    placeholder={`Player ${index + 1}`}
+                    autoComplete="off"
                   />
 
                   {names.length > 3 && (

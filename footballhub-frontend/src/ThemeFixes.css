@@ -1,0 +1,202 @@
+/* Shared theme fixes and refreshed Football Who Am I results. Loaded last. */
+
+/* Finish screen: works in dark and light themes */
+.who-am-i-result {
+  padding: clamp(22px, 4vw, 42px);
+  overflow: hidden;
+  text-align: center;
+  background: radial-gradient(circle at 50% 0, rgba(57,137,245,.14), transparent 44%), var(--surface);
+}
+.who-am-i-result-header { max-width: 720px; margin: 0 auto; }
+.who-am-i-result-kicker { display:block; color:var(--primary-light); font-size:.72rem; font-weight:900; letter-spacing:2.5px; }
+.who-am-i-result .winner-icon { margin:12px 0 8px; font-size:3.8rem; }
+.who-am-i-result-header h2 { margin:0; color:var(--text); font-size:clamp(2rem,5vw,3rem); }
+.who-am-i-result-header p { max-width:650px; margin:10px auto 0; color:var(--muted); }
+.who-am-i-winner-card { max-width:650px; margin:28px auto 34px; padding:25px; border:1px solid rgba(57,137,245,.3); border-radius:18px; background:linear-gradient(135deg,rgba(57,137,245,.12),transparent),var(--surface-2); text-align:center; }
+.who-am-i-winner-card > span { display:block; margin-bottom:8px; color:var(--primary-light); font-size:.7rem; font-weight:900; letter-spacing:2px; }
+.who-am-i-winner-card > strong { display:block; margin-bottom:7px; color:var(--text); font-size:1.7rem; overflow-wrap:anywhere; }
+.who-am-i-winner-card > small { display:block; color:var(--muted); }
+.who-am-i-winner-card b { color:var(--primary-light); }
+.who-am-i-section-heading { margin-bottom:14px; text-align:left; }
+.who-am-i-section-heading > span { display:block; margin-bottom:3px; color:var(--primary-light); font-size:.66rem; font-weight:900; letter-spacing:2px; }
+.who-am-i-section-heading h3 { margin:0; color:var(--text); font-size:1.25rem; }
+.who-am-i-finish-order, .who-am-i-final-players { margin:0 auto 32px; text-align:left; }
+.who-am-i-podium { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; align-items:stretch; }
+.who-am-i-podium-card { min-width:0; min-height:165px; padding:20px 14px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:1px solid var(--border); border-radius:16px; background:var(--surface-2); text-align:center; }
+.who-am-i-podium-card.podium-first { order:2; min-height:190px; border-color:rgba(245,188,58,.42); background:linear-gradient(145deg,rgba(245,188,58,.12),transparent),var(--surface-2); }
+.who-am-i-podium-card.podium-second { order:1; }
+.who-am-i-podium-card.podium-third { order:3; }
+.who-am-i-podium-card.podium-other { grid-column:1 / -1; min-height:auto; display:grid; grid-template-columns:42px minmax(0,1fr) minmax(0,1.2fr) auto; gap:10px; text-align:left; }
+.podium-medal { margin-bottom:8px; font-size:1.8rem; font-weight:900; }
+.podium-other .podium-medal { margin:0; text-align:center; font-size:1rem; }
+.who-am-i-podium-card > strong { max-width:100%; color:var(--text); font-size:.95rem; overflow-wrap:anywhere; }
+.who-am-i-podium-card > span:not(.podium-medal) { margin-top:5px; color:var(--primary-light); font-size:.78rem; overflow-wrap:anywhere; }
+.who-am-i-podium-card > small { margin-top:8px; color:var(--muted); font-size:.7rem; }
+.who-am-i-final-player-list { display:grid; gap:10px; }
+.who-am-i-final-player { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:16px 17px; border:1px solid var(--border); border-radius:14px; background:var(--surface-2); }
+.who-am-i-final-player.correct { border-color:rgba(57,137,245,.3); }
+.who-am-i-final-player.eliminated { border-color:rgba(217,76,97,.2); }
+.final-player-main { min-width:0; }
+.final-player-main strong, .final-player-main span, .final-player-secret strong, .final-player-secret small { display:block; }
+.final-player-main strong { color:var(--text); overflow-wrap:anywhere; }
+.final-player-main span { margin-top:4px; color:var(--muted); font-size:.74rem; }
+.final-player-secret { min-width:0; text-align:right; }
+.final-player-secret small { margin-bottom:3px; color:var(--muted-2); font-size:.65rem; }
+.final-player-secret strong { color:var(--primary-light); font-size:.85rem; overflow-wrap:anywhere; }
+.who-am-i-result-actions { display:flex; justify-content:center; margin-top:28px; }
+.who-am-i-result-actions .game-button { min-width:160px; margin-top:0; }
+
+/* Site-wide light theme: override dark surfaces hard-coded in page CSS. */
+[data-theme="light"] body { background:radial-gradient(circle at 84% 12%,rgba(42,143,255,.10),transparent 32%),radial-gradient(circle at 8% 82%,rgba(0,170,255,.06),transparent 30%),var(--bg); color:var(--text); }
+[data-theme="light"] .home-page,
+[data-theme="light"] .profile-page,
+[data-theme="light"] .auth-page,
+[data-theme="light"] .builder-page,
+[data-theme="light"] .squad-builder-page,
+[data-theme="light"] .game-page { background-color:transparent; color:var(--text); }
+[data-theme="light"] .home-header-logo span,
+[data-theme="light"] .hero h1,
+[data-theme="light"] .section-heading h2,
+[data-theme="light"] .feature-card h3,
+[data-theme="light"] .auth-card h1,
+[data-theme="light"] .profile-card h1,
+[data-theme="light"] .builder-header h1,
+[data-theme="light"] .builder-panel h2,
+[data-theme="light"] .game-hero h1,
+[data-theme="light"] .game-card h2,
+[data-theme="light"] .game-card h3,
+[data-theme="light"] .pitch-header h2,
+[data-theme="light"] .pitch-header h3 { color:var(--text); }
+[data-theme="light"] .hero p,
+[data-theme="light"] .feature-card p,
+[data-theme="light"] .auth-subtitle,
+[data-theme="light"] .profile-card > p,
+[data-theme="light"] .builder-header p,
+[data-theme="light"] .builder-panel label,
+[data-theme="light"] .panel-hint,
+[data-theme="light"] .game-hero p,
+[data-theme="light"] .game-card p { color:var(--muted); }
+[data-theme="light"] .game-card,
+[data-theme="light"] .builder-panel,
+[data-theme="light"] .manager-card,
+[data-theme="light"] .auth-card,
+[data-theme="light"] .profile-card,
+[data-theme="light"] .room-code { border-color:var(--border); background:var(--surface); box-shadow:0 12px 32px rgba(37,89,130,.08); }
+[data-theme="light"] .profile-info > div,
+[data-theme="light"] .profile-edit-form input,
+[data-theme="light"] .profile-edit-form select,
+[data-theme="light"] .auth-card input,
+[data-theme="light"] .auth-card select,
+[data-theme="light"] .builder-panel input,
+[data-theme="light"] .builder-panel select,
+[data-theme="light"] .player-search input,
+[data-theme="light"] .manager-search input,
+[data-theme="light"] .game-card input,
+[data-theme="light"] .game-card select,
+[data-theme="light"] .who-am-i-guess-input,
+[data-theme="light"] .name-row input { border-color:var(--border); background:var(--bg-2); color:var(--text); }
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder,
+[data-theme="light"] .game-card input::placeholder,
+[data-theme="light"] .builder-panel input::placeholder { color:var(--muted-2); opacity:1; }
+[data-theme="light"] select option,
+[data-theme="light"] .battle-category-select option,
+[data-theme="light"] .battle-category-select optgroup { background:var(--surface); color:var(--text); }
+[data-theme="light"] .difficulty-option,
+[data-theme="light"] .category,
+[data-theme="light"] .battle-category,
+[data-theme="light"] .vote-option,
+[data-theme="light"] .player-chip,
+[data-theme="light"] .alphabet-score,
+[data-theme="light"] .clue-player,
+[data-theme="light"] .who-am-i-tab,
+[data-theme="light"] .who-am-i-lives,
+[data-theme="light"] .who-am-i-final-player,
+[data-theme="light"] .secret-box,
+[data-theme="light"] .who-am-i-secret-card,
+[data-theme="light"] .who-am-i-hidden-card,
+[data-theme="light"] .selected-position,
+[data-theme="light"] .search-player,
+[data-theme="light"] .selected-manager,
+[data-theme="light"] .manager-result { border-color:var(--border); background:var(--surface-2); color:var(--text); }
+[data-theme="light"] .difficulty-option:hover,
+[data-theme="light"] .difficulty-option.active,
+[data-theme="light"] .category.active,
+[data-theme="light"] .battle-category.active,
+[data-theme="light"] .battle-category:hover:not(:disabled),
+[data-theme="light"] .vote-option:hover,
+[data-theme="light"] .who-am-i-tab.active,
+[data-theme="light"] .who-am-i-tab:hover:not(:disabled),
+[data-theme="light"] .search-player:hover:not(:disabled),
+[data-theme="light"] .manager-result:hover,
+[data-theme="light"] .manager-result.selected,
+[data-theme="light"] .alphabet-score.active { border-color:var(--primary); background:var(--surface-3); color:var(--text); }
+[data-theme="light"] .difficulty-option strong,
+[data-theme="light"] .who-am-i-tab strong,
+[data-theme="light"] .who-am-i-final-player strong,
+[data-theme="light"] .search-player strong,
+[data-theme="light"] .search-player b,
+[data-theme="light"] .selected-manager strong,
+[data-theme="light"] .manager-result strong,
+[data-theme="light"] .alphabet-score strong,
+[data-theme="light"] .result-row b { color:var(--text); }
+[data-theme="light"] .difficulty-option span,
+[data-theme="light"] .who-am-i-tab span,
+[data-theme="light"] .who-am-i-lives strong,
+[data-theme="light"] .selected-position span,
+[data-theme="light"] .search-player span,
+[data-theme="light"] .selected-manager small,
+[data-theme="light"] .selected-manager div:last-child > span,
+[data-theme="light"] .manager-result small,
+[data-theme="light"] .alphabet-score span,
+[data-theme="light"] .clue-player span,
+[data-theme="light"] .secret-box small,
+[data-theme="light"] .secret-box span,
+[data-theme="light"] .room-code small { color:var(--muted); }
+[data-theme="light"] .game-button.secondary { background:var(--surface-3); color:var(--text); }
+[data-theme="light"] .who-am-i-rule-box,
+[data-theme="light"] .who-am-i-guess-panel,
+[data-theme="light"] .selected-position { border-color:var(--border); background:var(--surface-2); color:var(--text); }
+[data-theme="light"] .who-am-i-rule-box strong,
+[data-theme="light"] .who-am-i-guess-panel h2,
+[data-theme="light"] .who-am-i-secret-card strong,
+[data-theme="light"] .who-am-i-hidden-card strong,
+[data-theme="light"] .who-am-i-podium-card strong,
+[data-theme="light"] .final-player-main strong { color:var(--text); }
+[data-theme="light"] .who-am-i-rule-box p,
+[data-theme="light"] .who-am-i-guess-panel p,
+[data-theme="light"] .who-am-i-secret-card small,
+[data-theme="light"] .who-am-i-hidden-card small,
+[data-theme="light"] .who-am-i-result-header p,
+[data-theme="light"] .final-player-main span { color:var(--muted); }
+[data-theme="light"] .who-am-i-hidden-card span { background:rgba(57,137,245,.10); color:var(--primary); }
+[data-theme="light"] .who-am-i-secret-card,
+[data-theme="light"] .secret-box,
+[data-theme="light"] .who-am-i-guess-panel { background:linear-gradient(145deg,var(--surface),var(--surface-2)); }
+[data-theme="light"] .who-am-i-winner-card { border-color:rgba(22,119,210,.24); background:linear-gradient(135deg,rgba(22,119,210,.08),transparent),var(--surface); }
+[data-theme="light"] .who-am-i-podium-card,
+[data-theme="light"] .who-am-i-final-player { background:var(--surface); border-color:var(--border); }
+[data-theme="light"] .who-am-i-podium-card.podium-first { border-color:rgba(213,154,25,.38); background:linear-gradient(145deg,rgba(245,188,58,.12),transparent),var(--surface); }
+[data-theme="light"] .who-am-i-final-player.eliminated { border-color:rgba(217,76,97,.18); }
+[data-theme="light"] .mini-button { background:rgba(217,76,97,.10); color:var(--danger); }
+[data-theme="light"] .notice,
+[data-theme="light"] .game-message,
+[data-theme="light"] .builder-message { border-color:rgba(22,119,210,.15); background:rgba(22,119,210,.06); color:#315c81; }
+[data-theme="light"] .game-message.error,
+[data-theme="light"] .builder-message.error { border-color:rgba(217,76,97,.2); background:rgba(217,76,97,.07); color:var(--danger); }
+[data-theme="light"] .player-avatar-placeholder,
+[data-theme="light"] .manager-result-icon { background:var(--surface-3); color:var(--primary); }
+[data-theme="light"] .export-manager { color:#fff; }
+
+@media (max-width:700px) {
+  .who-am-i-result { padding:26px 18px; }
+  .who-am-i-podium { grid-template-columns:1fr; }
+  .who-am-i-podium-card.podium-first,
+  .who-am-i-podium-card.podium-second,
+  .who-am-i-podium-card.podium-third { order:initial; min-height:auto; }
+  .who-am-i-podium-card.podium-other { grid-column:auto; grid-template-columns:34px minmax(0,1fr); }
+  .who-am-i-podium-card.podium-other > span:not(.podium-medal),
+  .who-am-i-podium-card.podium-other > small { grid-column:2; }
+  .who-am-i-final-player { align-items:flex-start; flex-direction:column; gap:10px; }
+  .final-player-secret { text-align:left; }
+}

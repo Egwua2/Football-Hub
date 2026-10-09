@@ -165,14 +165,14 @@ function exampleFor(letter) {
 }
 
 function FootballAlphabet() {
-  const [names, setNames] = useState(["Player 1", "Player 2"]);
+  const [names, setNames] = useState(["", ""]);
   const [game, setGame] = useState(null);
   const [answer, setAnswer] = useState("");
   const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
   const [error, setError] = useState("");
 
   const cleanNames = useMemo(
-    () => names.map((name, index) => name.trim() || `Player ${index + 1}`),
+    () => names.map((name) => name.trim()),
     [names]
   );
 
@@ -190,10 +190,15 @@ function FootballAlphabet() {
 
   function addPlayer() {
     if (names.length >= 8) return;
-    setNames((current) => [...current, `Player ${current.length + 1}`]);
+    setNames((current) => [...current, ""]);
   }
 
   function startGame() {
+    if (cleanNames.some((name) => !name)) {
+      setError("Please enter a name for every player.");
+      return;
+    }
+
     const letters = drawLetters(ROUNDS);
     setGame({
       round: 1,
@@ -282,7 +287,12 @@ function FootballAlphabet() {
             <div className="name-list">
               {names.map((name, index) => (
                 <div className="name-row" key={index}>
-                  <input value={name} onChange={(e) => setNames((current) => current.map((item, i) => i === index ? e.target.value : item))} />
+                  <input
+                    value={name}
+                    onChange={(e) => setNames((current) => current.map((item, i) => i === index ? e.target.value : item))}
+                    placeholder={`Player ${index + 1}`}
+                    autoComplete="off"
+                  />
                   {names.length > 1 && <button className="mini-button" onClick={() => setNames((current) => current.filter((_, i) => i !== index))}>×</button>}
                 </div>
               ))}
@@ -301,6 +311,7 @@ function FootballAlphabet() {
               <p>• Each correct answer is one point.</p>
             </div>
             <button className="game-button" onClick={startGame}>Start Alphabet</button>
+            {error && <div className="game-message error">{error}</div>}
           </div>
         </section>
       )}

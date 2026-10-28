@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import html2canvas from "html2canvas";
-import { playerApi, squadApi } from "../services/api";
+import { getPlayerImageUrl, playerApi, squadApi } from "../services/api";
+import { usePersistentState } from "../hooks/usePersistentState";
 import PlayerAvatar from "../components/PlayerAvatar";
 import pitchImage from "../assets/football-pitch.jpg";
 import "./SquadBuilder.css";
@@ -23,9 +24,7 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "RB", label: "RB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "4-4-2": [
@@ -45,15 +44,11 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "RB", label: "RB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "4-2-3-1": [
-    [
-      { slot: "ST", label: "ST" },
-    ],
+    [{ slot: "ST", label: "ST" }],
     [
       { slot: "CAM_A", label: "CAM" },
       { slot: "CAM_B", label: "CAM" },
@@ -69,39 +64,29 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "RB", label: "RB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "4-1-4-1": [
-    [
-      { slot: "ST", label: "ST" },
-    ],
+    [{ slot: "ST", label: "ST" }],
     [
       { slot: "LM", label: "LM" },
       { slot: "CM_A", label: "CM" },
       { slot: "CM_B", label: "CM" },
       { slot: "RM", label: "RM" },
     ],
-    [
-      { slot: "DM", label: "DM" },
-    ],
+    [{ slot: "DM", label: "DM" }],
     [
       { slot: "LB", label: "LB" },
       { slot: "CB_A", label: "CB" },
       { slot: "CB_B", label: "CB" },
       { slot: "RB", label: "RB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "4-3-2-1": [
-    [
-      { slot: "ST", label: "ST" },
-    ],
+    [{ slot: "ST", label: "ST" }],
     [
       { slot: "CAM_A", label: "CAM" },
       { slot: "CAM_B", label: "CAM" },
@@ -117,9 +102,7 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "RB", label: "RB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "4-2-2-2": [
@@ -141,18 +124,12 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "RB", label: "RB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "4-4-1-1": [
-    [
-      { slot: "ST", label: "ST" },
-    ],
-    [
-      { slot: "CAM", label: "CAM" },
-    ],
+    [{ slot: "ST", label: "ST" }],
+    [{ slot: "CAM", label: "CAM" }],
     [
       { slot: "LM", label: "LM" },
       { slot: "CM_A", label: "CM" },
@@ -165,9 +142,7 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "RB", label: "RB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "4-3-1-2": [
@@ -175,9 +150,7 @@ const FORMATION_LAYOUTS = {
       { slot: "ST_A", label: "ST" },
       { slot: "ST_B", label: "ST" },
     ],
-    [
-      { slot: "CAM", label: "CAM" },
-    ],
+    [{ slot: "CAM", label: "CAM" }],
     [
       { slot: "CM_A", label: "CM" },
       { slot: "DM", label: "DM" },
@@ -189,9 +162,7 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "RB", label: "RB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "4-1-2-3": [
@@ -204,24 +175,18 @@ const FORMATION_LAYOUTS = {
       { slot: "CM_A", label: "CM" },
       { slot: "CM_B", label: "CM" },
     ],
-    [
-      { slot: "DM", label: "DM" },
-    ],
+    [{ slot: "DM", label: "DM" }],
     [
       { slot: "LB", label: "LB" },
       { slot: "CB_A", label: "CB" },
       { slot: "CB_B", label: "CB" },
       { slot: "RB", label: "RB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "4-5-1": [
-    [
-      { slot: "ST", label: "ST" },
-    ],
+    [{ slot: "ST", label: "ST" }],
     [
       { slot: "LM", label: "LM" },
       { slot: "CM_A", label: "CM" },
@@ -235,9 +200,7 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "RB", label: "RB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "3-5-2": [
@@ -257,9 +220,7 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "CB_C", label: "CB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "3-4-3": [
@@ -279,9 +240,7 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "CB_C", label: "CB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "3-4-1-2": [
@@ -289,9 +248,7 @@ const FORMATION_LAYOUTS = {
       { slot: "ST_A", label: "ST" },
       { slot: "ST_B", label: "ST" },
     ],
-    [
-      { slot: "CAM", label: "CAM" },
-    ],
+    [{ slot: "CAM", label: "CAM" }],
     [
       { slot: "LM", label: "LM" },
       { slot: "CM_A", label: "CM" },
@@ -303,15 +260,11 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "CB_C", label: "CB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "3-4-2-1": [
-    [
-      { slot: "ST", label: "ST" },
-    ],
+    [{ slot: "ST", label: "ST" }],
     [
       { slot: "CAM_A", label: "CAM" },
       { slot: "CAM_B", label: "CAM" },
@@ -327,15 +280,11 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "CB_C", label: "CB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "3-3-3-1": [
-    [
-      { slot: "ST", label: "ST" },
-    ],
+    [{ slot: "ST", label: "ST" }],
     [
       { slot: "LW", label: "LW" },
       { slot: "CAM", label: "CAM" },
@@ -351,9 +300,7 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "CB_C", label: "CB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "3-1-4-2": [
@@ -367,23 +314,17 @@ const FORMATION_LAYOUTS = {
       { slot: "CM_B", label: "CM" },
       { slot: "RM", label: "RM" },
     ],
-    [
-      { slot: "DM", label: "DM" },
-    ],
+    [{ slot: "DM", label: "DM" }],
     [
       { slot: "CB_A", label: "CB" },
       { slot: "CB_B", label: "CB" },
       { slot: "CB_C", label: "CB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "3-2-4-1": [
-    [
-      { slot: "ST", label: "ST" },
-    ],
+    [{ slot: "ST", label: "ST" }],
     [
       { slot: "LM", label: "LM" },
       { slot: "CAM_A", label: "CAM" },
@@ -399,9 +340,7 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "CB_C", label: "CB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "5-3-2": [
@@ -421,15 +360,11 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_C", label: "CB" },
       { slot: "RWB", label: "RWB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "5-4-1": [
-    [
-      { slot: "ST", label: "ST" },
-    ],
+    [{ slot: "ST", label: "ST" }],
     [
       { slot: "LM", label: "LM" },
       { slot: "CM_A", label: "CM" },
@@ -443,9 +378,7 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_C", label: "CB" },
       { slot: "RWB", label: "RWB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "5-2-3": [
@@ -465,18 +398,12 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_C", label: "CB" },
       { slot: "RWB", label: "RWB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "5-3-1-1": [
-    [
-      { slot: "ST", label: "ST" },
-    ],
-    [
-      { slot: "CAM", label: "CAM" },
-    ],
+    [{ slot: "ST", label: "ST" }],
+    [{ slot: "CAM", label: "CAM" }],
     [
       { slot: "CM_A", label: "CM" },
       { slot: "DM", label: "DM" },
@@ -489,9 +416,7 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_C", label: "CB" },
       { slot: "RWB", label: "RWB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "5-2-1-2": [
@@ -499,9 +424,7 @@ const FORMATION_LAYOUTS = {
       { slot: "ST_A", label: "ST" },
       { slot: "ST_B", label: "ST" },
     ],
-    [
-      { slot: "CAM", label: "CAM" },
-    ],
+    [{ slot: "CAM", label: "CAM" }],
     [
       { slot: "DM_A", label: "DM" },
       { slot: "DM_B", label: "DM" },
@@ -513,9 +436,7 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_C", label: "CB" },
       { slot: "RWB", label: "RWB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "4-2-1-3": [
@@ -524,9 +445,7 @@ const FORMATION_LAYOUTS = {
       { slot: "ST", label: "ST" },
       { slot: "RW", label: "RW" },
     ],
-    [
-      { slot: "CAM", label: "CAM" },
-    ],
+    [{ slot: "CAM", label: "CAM" }],
     [
       { slot: "DM_A", label: "DM" },
       { slot: "DM_B", label: "DM" },
@@ -537,9 +456,7 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "RB", label: "RB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "4-3-3 DM": [
@@ -559,9 +476,7 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "RB", label: "RB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 
   "4-3-3 False 9": [
@@ -581,249 +496,142 @@ const FORMATION_LAYOUTS = {
       { slot: "CB_B", label: "CB" },
       { slot: "RB", label: "RB" },
     ],
-    [
-      { slot: "GK", label: "GK" },
-    ],
+    [{ slot: "GK", label: "GK" }],
   ],
 };
 
 const FORMATIONS = Object.keys(FORMATION_LAYOUTS);
 
 const DAILY_MESSAGES = [
-
   "Something to try? Build an XI of players who are not in the top 5 leagues.",
-
   "Random squad time: Build an XI of forgotten ballers.",
-
   "Today's Football Hub challenge: Start with any player of your choice, then add a player that has played with them. Repeat with the next player.",
-
   "Try something different today. Pick a formation you normally never use and build an XI.",
-
   "Today's challenge: Build a squad with players from the same country. Can you make it work?",
-
   "Today's challenge: Build a squad with players from the same league but different teams. Let's see how it goes!",
-
   "No superstars allowed. Build an XI without using any player who has won the Ballon d'Or.",
-
   "Build an XI using only players who have played in at least two different continents.",
-
   "One club only. Pick a club and build an XI using only players who have played for them.",
-
   "Build an XI where every player has won a Champions League.",
-
   "Build an XI of players who have never won the Champions League.",
-
   "Nationality roulette: Pick 3 countries and build your entire XI using only players from those countries.",
-
   "Build an XI using players from 11 different countries. No nationality can appear twice.",
-
   "Underrated XI: Pick the best players you think never get enough respect.",
-
   "Build an XI using only players who are currently under 23.",
-
   "Old-school challenge: Build an XI using only players aged 30 or older.",
-
   "Build an XI of players who played for your favourite club but are no longer there.",
-
   "Build an XI using players who have played for both rival clubs.",
-
   "Build an XI of players who have played together at club level but never for the same club at the same time.",
-
   "Build an XI where every player comes from a different league.",
-
   "Build an XI using only players who have represented their country at a World Cup.",
-
   "Build an XI using players who have won a major international trophy.",
-
   "Build an XI of players who have never won a major international trophy.",
-
   "Build an XI using only players who have scored in a Champions League final.",
-
   "Build an XI of players who have scored a hat-trick for their national team.",
-
   "Build an XI using only left-footed players. Good luck finding a goalkeeper.",
-
   "Build an XI using only right-footed players.",
-
   "Build an XI where every player has a different preferred position.",
-
   "Build an XI without using your country's players.",
-
   "Build an XI using only players who have played in the Premier League.",
-
   "Build an XI using only players who have played in LaLiga.",
-
   "Build an XI using only players who have played in Serie A.",
-
   "Build an XI using only players who have played in the Bundesliga.",
-
   "Build an XI using only players who have played in Ligue 1.",
-
   "Build an XI of players who have played for at least three different clubs.",
-
   "Build an XI of players who started their careers at the same club.",
-
   "Build an XI using only academy graduates.",
-
   "Build an XI of players who moved directly from one rival club to another.",
-
   "Build an XI of players who have played under the same manager.",
-
   "Build an XI where every player has a different manager from the previous player.",
-
   "Build an XI of players who have won a domestic league title in at least two countries.",
-
   "Build an XI of players who have played in both Europe and South America.",
-
   "Build an XI using only players who have scored 20+ goals in a single league season.",
-
   "Build an XI of players known more for their assists than their goals.",
-
   "Build an XI of players who are famous for scoring spectacular goals.",
-
   "Build an XI of players who are known for their defensive ability.",
-
   "Build an XI of players who have captained their national team.",
-
   "Build an XI of players who have worn the number 10 shirt.",
-
   "Build an XI of players who have worn the number 7 shirt.",
-
   "Build an XI where every player wears a different shirt number.",
-
   "Build an XI using only players whose first names start with the same letter.",
-
   "Build an XI using only players whose last names start with the same letter.",
-
   "Letter challenge: Every player's first or last name must start with the letter M.",
-
   "Alphabet challenge: Build an XI where every player's name starts with a different letter.",
-
   "Build an XI of players whose surnames are longer than their first names.",
-
   "Build an XI of players who have scored against their former club.",
-
   "Build an XI of players who have scored in a World Cup.",
-
   "Build an XI of players who have scored in a Champions League knockout stage.",
-
   "Build an XI of players who have played in a Champions League final.",
-
   "Build an XI using only players who have won a domestic cup.",
-
   "Build an XI of players who have played for at least one club outside their home country.",
-
   "Build an XI without using anyone from the Premier League, LaLiga, Serie A, Bundesliga or Ligue 1.",
-
   "Build an XI from exactly 5 different leagues.",
-
   "Build an XI from exactly 3 different countries.",
-
   "Build an XI where every player is from a different club.",
-
   "Build an XI using only players whose careers started before you were born.",
-
   "Build an XI using only players who made their professional debut before 2010.",
-
   "Build an XI using only players who made their professional debut after 2020.",
-
   "Build an XI of players who were teammates at international level but never at club level.",
-
   "Build an XI of players who were teammates at club level but never represented the same country.",
-
   "Build an XI using players who have played under at least two legendary managers.",
-
   "Build an XI of players who have changed positions during their careers.",
-
   "Build an XI using only players who can comfortably play at least two positions.",
-
   "Build an XI of players who were once considered wonderkids.",
-
   "Build an XI of players who came through a famous football academy.",
-
   "Build an XI of players who left their boyhood club and became stars elsewhere.",
-
   "Build an XI of players who returned to a club they had previously left.",
-
   "Build an XI where every player must have played for at least one club outside Europe.",
-
   "Build an XI of players who have won a trophy with their national team AND their club.",
-
   "Build an XI of players who have never received a red card.",
-
   "Build an XI of players who have scored directly from a free kick.",
-
   "Build an XI of players who have scored directly from a corner.",
-
   "Build an XI of players who have scored a goal from outside the box.",
-
   "Build an XI of players famous for penalty taking.",
-
   "Build an XI of players famous for taking free kicks.",
-
   "Build an XI of players who have scored in a final.",
-
   "Build an XI of players who have won a trophy in their debut season at a club.",
-
   "Build an XI of players who have played in more than one World Cup.",
-
   "Build an XI of players who have scored in more than one World Cup.",
-
   "Build an XI using only players who have been teammates with a Ballon d'Or winner.",
-
   "Build an XI using only players who have played with a World Cup winner.",
-
   "Build an XI where every player has played with at least one current or former teammate of yours.",
-
   "Build an XI of players who have played for clubs beginning with the same letter.",
-
   "Build an XI where every player's club starts with a different letter.",
-
   "Build an XI of players who have played in the same stadium but never as teammates.",
-
   "Build an XI of players who have scored in the same stadium for different clubs.",
-
   "Build an XI of players who have played for clubs in at least three different countries.",
-
   "Build an XI with the weirdest possible combination of players that somehow still makes sense.",
-
   "Chaos challenge: Pick your goalkeeper first and build the entire XI around them.",
-
   "Reverse challenge: Pick your striker first, then build backwards to the goalkeeper.",
-
   "No repeats: Every player must come from a different club AND a different country.",
-
   "Budget challenge: Pretend you only have 100 million to build your XI. Spend wisely.",
-
   "Rivalry challenge: Build an XI using players from clubs that have a famous rivalry.",
-
   "Throwback challenge: Build an XI of players you remember from your childhood.",
-
   "Nostalgia challenge: Build an XI using players who were at their peak between 2005 and 2015.",
-
   "Future XI: Build an XI using players you think will become world-class.",
-
   "Forgotten XI: Build an XI of players who were once considered elite but are rarely talked about now.",
-
   "Cult hero challenge: Build an XI of players who became fan favourites without necessarily being superstars.",
-
   "One-season wonder challenge: Build an XI of players who had one unforgettable season.",
-
   "Underdog challenge: Build an XI using players who were never highly rated as youngsters.",
-
   "The Impossible XI: Build the strongest team you can without using any player from your favourite club.",
-
 ];
 
 function SquadBuilder() {
-  const [formation, setFormation] = useState("4-3-3");
-  const [squadName, setSquadName] = useState("");
-  const [manager, setManager] = useState(null);
+  const [formation, setFormation] = usePersistentState("squadBuilder.formation", "4-3-3");
+  const [squadName, setSquadName] = usePersistentState("squadBuilder.name", "");
+  const [manager, setManager] = usePersistentState("squadBuilder.manager", null);
+  const [savedSquadId, setSavedSquadId] = usePersistentState(
+    "squadBuilder.lastSquadId",
+    localStorage.getItem("footballHub.lastSquadId") || ""
+  );
   const [managerSearch, setManagerSearch] = useState("");
   const [managerResults, setManagerResults] = useState([]);
   const [managerSearching, setManagerSearching] = useState(false);
   const [squadId, setSquadId] = useState(null);
-  const [squadPlayers, setSquadPlayers] = useState({});
+const [squadPlayers, setSquadPlayers] = usePersistentState(
+  "squadBuilder.players",
+  {}
+);
 
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [searchText, setSearchText] = useState("");
@@ -841,6 +649,63 @@ function SquadBuilder() {
   const layout = FORMATION_LAYOUTS[formation];
 
   const playerCount = Object.keys(squadPlayers).length;
+
+  useEffect(() => {
+    if (!savedSquadId || squadId) return undefined;
+
+    let cancelled = false;
+
+    async function restoreSquad() {
+      try {
+        const savedSquad = await squadApi.get(savedSquadId);
+
+        if (!savedSquad?.id) {
+          throw new Error("Saved squad was not found.");
+        }
+
+        const savedPlayers = await squadApi.getPlayers(savedSquad.id);
+        if (cancelled) return;
+
+        const restoredPlayers = {};
+        savedPlayers.forEach((player) => {
+          if (player.positionSlot) {
+            restoredPlayers[player.positionSlot] = player;
+          }
+        });
+
+        setSquadId(savedSquad.id);
+        localStorage.setItem("footballHub.lastSquadId", String(savedSquad.id));
+        setSquadName(savedSquad.name || "");
+        setFormation(
+          FORMATION_LAYOUTS[savedSquad.formation]
+            ? savedSquad.formation
+            : "4-3-3"
+        );
+        setManager((current) => {
+          // Keep the locally saved manager if the backend response has no manager name.
+          if (!savedSquad.managerName) return current;
+          if (current?.name === savedSquad.managerName) return current;
+          return { name: savedSquad.managerName };
+        });
+        setSquadPlayers(restoredPlayers);
+        setSelectedSlot(null);
+        setMessage(`Your squad "${savedSquad.name}" has been restored.`);
+      } catch {
+        if (cancelled) return;
+
+        // Keep the saved squad ID if there is a temporary backend/database issue.
+        setError(
+          "Could not restore your last squad. Check that the backend and MySQL are running, then refresh. Your saved squad reference has been kept."
+        );
+      }
+    }
+
+    restoreSquad();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [savedSquadId, squadId, setFormation, setManager, setSquadName, setSavedSquadId]);
 
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -867,20 +732,32 @@ function SquadBuilder() {
         exportManager.style.display = "flex";
       }
 
-      const playerImages = pitchExportRef.current.querySelectorAll(".pitch-player img");
+      const playerImages = pitchExportRef.current.querySelectorAll(
+        ".pitch-player img, .export-manager img"
+      );
 
-      playerImages.forEach((image) => {
-        image.setAttribute("crossorigin", "anonymous");
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      // Give remote images a chance to finish loading before html2canvas captures them.
+      await Promise.all(
+        Array.from(playerImages).map((image) => {
+          image.loading = "eager";
+          if (image.complete && image.naturalWidth > 0) {
+            return Promise.resolve();
+          }
+          return new Promise((resolve) => {
+            image.addEventListener("load", resolve, { once: true });
+            image.addEventListener("error", resolve, { once: true });
+            setTimeout(resolve, 5000);
+          });
+        })
+      );
 
       const canvas = await html2canvas(pitchExportRef.current, {
         backgroundColor: "#07111f",
         useCORS: true,
         allowTaint: false,
-        imageTimeout: 15000,
+        imageTimeout: 20000,
         scale: 2,
+        logging: false,
       });
 
       if (exportManager) {
@@ -892,7 +769,7 @@ function SquadBuilder() {
       link.href = canvas.toDataURL("image/png");
       link.click();
       setMessage("Full squad exported ✓");
-    } catch (err) {
+    } catch {
       const exportManager = pitchExportRef.current?.querySelector(".export-manager");
 
       if (exportManager) {
@@ -928,6 +805,7 @@ function SquadBuilder() {
 
       setSquadId(squad.id);
       localStorage.setItem("footballHub.lastSquadId", String(squad.id));
+      setSavedSquadId(String(squad.id));
       setSquadPlayers({});
       setSelectedSlot(null);
 
@@ -938,6 +816,35 @@ function SquadBuilder() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function resetSquad() {
+    setError("");
+    setMessage("");
+
+    try {
+      // Delete the current squad on the backend so it cannot be restored on refresh.
+      if (squadId) {
+        await squadApi.delete(squadId);
+      }
+
+      setSquadId(null);
+      setSquadPlayers({});
+      setSelectedSlot(null);
+      setSquadName("");
+      setManager(null);
+      setFormation("4-3-3");
+      setSearchText("");
+      setPlayers([]);
+      setManagerSearch("");
+      setManagerResults([]);
+      setSavedSquadId("");
+
+      localStorage.removeItem("footballHub.lastSquadId");
+      setMessage("Squad reset. You can create a new one now.");
+    } catch (err) {
+      setError(err.message || "Could not reset the squad. Please try again.");
     }
   }
 
@@ -1095,11 +1002,10 @@ function SquadBuilder() {
 
   return (
     <main className="squad-builder-page">
-
       <section className="builder-header">
         <div>
           <span className="builder-kicker">
-             .SQUAD BUILDER
+            .SQUAD BUILDER
           </span>
 
           <h1>
@@ -1129,9 +1035,7 @@ function SquadBuilder() {
       )}
 
       <section className="builder-layout">
-
         <aside className="builder-sidebar">
-
           <div className="builder-panel">
             <div className="panel-title">
               <span>01</span>
@@ -1175,18 +1079,26 @@ function SquadBuilder() {
             )}
 
             {squadId && (
-              <div className="created-status">
-                <span>✓</span>
-                <div>
-                  <strong>Squad Created</strong>
-                  <small>{formation}</small>
+              <>
+                <div className="created-status">
+                  <span>✓</span>
+                  <div>
+                    <strong>Squad Created</strong>
+                    <small>{formation}</small>
+                  </div>
                 </div>
-              </div>
+                <button
+                  className="secondary-action"
+                  onClick={resetSquad}
+                  disabled={loading}
+                >
+                  Reset Squad
+                </button>
+              </>
             )}
           </div>
 
           <div className="builder-panel">
-
             <div className="panel-title">
               <span>02</span>
               <h2>Add Player</h2>
@@ -1227,7 +1139,6 @@ function SquadBuilder() {
             </div>
 
             <div className="search-results">
-
               {players.length === 0 && (
                 <div className="empty-search">
                   {squadId
@@ -1255,7 +1166,6 @@ function SquadBuilder() {
                   <b>+</b>
                 </button>
               ))}
-
             </div>
           </div>
 
@@ -1341,11 +1251,9 @@ function SquadBuilder() {
               {error || message}
             </div>
           )}
-
         </aside>
 
         <section className="pitch-section">
-
           <div className="pitch-header">
             <div>
               <span>TACTICAL BOARD</span>
@@ -1361,7 +1269,6 @@ function SquadBuilder() {
 
           <div className="pitch-export-area" ref={pitchExportRef}>
             <div className="pitch-wrapper">
-
               <div className="football-pitch">
                 <img
                   className="pitch-background"
@@ -1370,80 +1277,65 @@ function SquadBuilder() {
                 />
 
                 <div className="pitch-formation">
+                  {layout.map((row, rowIndex) => (
+                    <div
+                      className={`pitch-row pitch-row-${rowIndex}`}
+                      key={`${formation}-row-${rowIndex}`}
+                    >
+                      {row.map((position) => {
+                        const player =
+                          squadPlayers[position.slot];
 
-                {layout.map((row, rowIndex) => (
-                  <div
-                    className={`pitch-row pitch-row-${rowIndex}`}
-                    key={`${formation}-row-${rowIndex}`}
-                  >
+                        const isSelected =
+                          selectedSlot === position.slot;
 
-                    {row.map((position) => {
+                        return (
+                          <div
+                            key={position.slot}
+                            className={`pitch-position ${
+                              isSelected ? "selected" : ""
+                            } ${
+                              player ? "occupied" : "empty"
+                            }`}
+                            onClick={() =>
+                              setSelectedSlot(position.slot)
+                            }
+                          >
+                            <div className="position-label">
+                              {position.label}
+                            </div>
 
-                      const player =
-                        squadPlayers[position.slot];
+                            {player ? (
+                              <div className="pitch-player">
+                                <PlayerAvatar
+                                  player={player}
+                                />
 
-                      const isSelected =
-                        selectedSlot === position.slot;
+                                <span className="pitch-player-name">
+                                  {player.name}
+                                </span>
 
-                      return (
-                        <div
-                          key={position.slot}
-                          className={`pitch-position ${
-                            isSelected
-                              ? "selected"
-                              : ""
-                          } ${
-                            player
-                              ? "occupied"
-                              : "empty"
-                          }`}
-                          onClick={() =>
-                            setSelectedSlot(position.slot)
-                          }
-                        >
-
-                          <div className="position-label">
-                            {position.label}
+                                <button
+                                  className="remove-player"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    removePlayer(position.slot);
+                                  }}
+                                  title="Remove player"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="empty-player">
+                                <span>+</span>
+                              </div>
+                            )}
                           </div>
-
-                          {player ? (
-                            <div className="pitch-player">
-
-                              <PlayerAvatar
-                                player={player}
-                              />
-
-                              <span className="pitch-player-name">
-                                {player.name}
-                              </span>
-
-                              <button
-                                className="remove-player"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  removePlayer(
-                                    position.slot
-                                  );
-                                }}
-                                title="Remove player"
-                              >
-                                ×
-                              </button>
-
-                            </div>
-                          ) : (
-                            <div className="empty-player">
-                              <span>+</span>
-                            </div>
-                          )}
-
-                        </div>
-                      );
-                    })}
-
-                  </div>
-                ))}
-
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -1451,9 +1343,9 @@ function SquadBuilder() {
                 <span>TEAM MANAGER</span>
                 {manager?.photo && (
                   <img
-                    src={manager.photo}
-                    alt={manager.name || "Manager"}
                     crossOrigin="anonymous"
+                    src={getPlayerImageUrl(manager.photo)}
+                    alt={manager.name || "Manager"}
                   />
                 )}
                 <strong>{manager?.name || "No manager selected"}</strong>
@@ -1470,15 +1362,18 @@ function SquadBuilder() {
               Players can be placed anywhere — no position restrictions.
             </span>
 
-            <button className="export-pitch-button" onClick={exportPitch} disabled={playerCount === 0}>
+            <button
+              className="export-pitch-button"
+              onClick={exportPitch}
+              disabled={playerCount === 0}
+            >
               🖼 Export Pitch
             </button>
           </div>
-
         </section>
       </section>
     </main>
   );
 }
 
-export default SquadBuilder;
+export default SquadBuilder;  

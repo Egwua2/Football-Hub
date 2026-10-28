@@ -67,6 +67,12 @@ public class PlayerService {
                 continue;
             }
 
+            
+            String sport = text(item, "strSport");
+            if (sport != null && !sport.equalsIgnoreCase("Soccer")) {
+                continue;
+            }
+
             Player player = playerRepository
                     .findBySportsDbId(sportsDbId)
                     .orElseGet(Player::new);
@@ -84,8 +90,7 @@ public class PlayerService {
             player.setNationality(nationality);
             player.setPhoto(photo);
 
-            // TheSportsDB does not provide the same numeric player rating
-            // field as the previous API, so keep the rating neutral.
+            
             if (player.getRating() == null) {
                 player.setRating(0);
             }

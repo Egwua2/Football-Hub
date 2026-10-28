@@ -199,24 +199,14 @@ public class BattleRoomService {
                         room
                 );
 
-        BattleParticipant savedParticipant =
-                battleParticipantRepository.save(participant);
-
-        long playerCount =
-                battleParticipantRepository.countByRoomId(room.getId());
-
         /*
-         * If a category was already selected and there are now
-         * at least 2 players, automatically start the battle.
+         * Joining never auto-starts the battle. Only the host pressing
+         * "Start Battle" does that (see startBattle below) - otherwise
+         * the room can flip to BUILDING behind the host's back the
+         * moment a 2nd player joins, and a later click on "Start Battle"
+         * fails with "already started".
          */
-        if (room.getCategory() != null &&
-                !room.getCategory().isBlank() &&
-                playerCount >= 2) {
-
-            startBattle(roomCode);
-        }
-
-        return savedParticipant;
+        return battleParticipantRepository.save(participant);
     }
 
     public List<BattleParticipant> getParticipants(String roomCode) {
@@ -299,25 +289,12 @@ public class BattleRoomService {
 
         room.setCategory(category);
 
-        BattleRoom savedRoom =
-                battleRoomRepository.save(room);
-
-        long playerCount =
-                battleParticipantRepository.countByRoomId(
-                        room.getId()
-                );
-
         /*
-         * Automatically start the battle as soon as:
-         *
-         * 1. A valid category has been selected
-         * 2. At least 2 players are in the room
+         * Picking a category never auto-starts the battle either -
+         * same reasoning as joinRoom above. The host explicitly
+         * presses "Start Battle" when ready.
          */
-        if (playerCount >= 2) {
-            return startBattle(roomCode);
-        }
-
-        return savedRoom;
+        return battleRoomRepository.save(room);
     }
 
     public BattleRoom setRandomCategory(String roomCode) {
@@ -345,22 +322,10 @@ public class BattleRoomService {
 
         room.setCategory(selected.getName());
 
-        BattleRoom savedRoom =
-                battleRoomRepository.save(room);
-
-        long playerCount =
-                battleParticipantRepository.countByRoomId(
-                        room.getId()
-                );
-
         /*
-         * Random category follows the same automatic-start rule.
+         * Same as setCategory - no auto-start here either.
          */
-        if (playerCount >= 2) {
-            return startBattle(roomCode);
-        }
-
-        return savedRoom;
+        return battleRoomRepository.save(room);
     }
 
     public BattleRoom startBattle(String roomCode) {

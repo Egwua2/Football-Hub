@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../services/api";
 
 function Login() {
   const navigate = useNavigate();
@@ -21,40 +22,63 @@ function Login() {
   }
 
   async function handleSubmit(e) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+  e.preventDefault();
+  setError("");
+  setLoading(true);
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/users/login`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          login: form.usernameOrEmail,
+          password: form.password,
+        }),
+      }
+    );
+
+    const text = await response.text();
+
+    let data;
 
     try {
-      const response = await fetch(
-        "https://football-hub-production-6005.up.railway.app/api/users/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(form),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Login failed.");
-      }
-
-      localStorage.setItem(
-        "footballHubUser",
-        JSON.stringify(data.user)
-      );
-
-      navigate("/");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = text;
     }
+
+    if (!response.ok) {
+      throw new Error(
+        typeof data === "string"
+          ? data
+          : data?.message || data?.error || "Login failed."
+      );
+    }
+
+    if (!data || typeof data !== "object" || !data.id) {
+      throw new Error("The server returned an unexpected login response.");
+    }
+
+    localStorage.setItem(
+      "footballHubUser",
+      JSON.stringify(data)
+    );
+
+    navigate("/");
+  } catch (err) {
+    setError(
+      err.message === "Failed to fetch"
+        ? "Cannot reach the backend. Check that the server is running."
+        : err.message
+    );
+  } finally {
+    setLoading(false);
   }
+}
 
   return (
     <div className="auth-page">

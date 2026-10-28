@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { usePersistentState } from "../hooks/usePersistentState";
 import { Link } from "react-router-dom";
 import { battleApi } from "../services/api";
 import "./GamePages.css";
 
-const DEFAULT_BATTLE_CATEGORIES = ["Best Premier League XI","Best LaLiga XI","Best Serie A XI","Best Bundesliga XI","Best Ligue 1 XI","Best Barcelona XI","Best Real Madrid XI","Best Manchester United XI","Best Manchester City XI","Best Liverpool XI","Best Arsenal XI","Best Chelsea XI","Best Bayern Munich XI","Best AC Milan XI","Best Inter Milan XI","Best Juventus XI","Best PSG XI","Best Ajax XI","Best African XI","Best Nigerian XI","Best Brazilian XI","Best Argentine XI","Best French XI","Best English XI","Best Spanish XI","Best German XI","Best Italian XI","Best Portuguese XI","Best Dutch XI","Best South American XI","Best European XI","Best Under-23 XI","Best Under-21 XI","Best Under-20 XI","Best Young Players XI","Best Veterans XI","Best Players Over 30 XI","Best Champions League XI","Best World Cup XI","Best European Championship XI","Best Copa America XI","Best AFCON XI","Best Club World Cup XI","Best Europa League XI","Best All-Time XI","Best 21st Century XI","Best 20th Century XI","Best 2010s XI","Best 2020s XI","Best Current XI","Best Legends XI","Best Prime XI","Best Ballon d'Or Winners XI","Best Champions League Winners XI","Best World Cup Winners XI","Best Players Without a World Cup XI","Best Players Without a Ballon d'Or XI","Best One-Club XI","Best Players From One Country XI","Best Players From Different Countries XI","Best Players From Different Leagues XI","Best Academy Graduates XI","Best Wonderkid XI","Best Underrated XI","Best Cult Heroes XI","Best Rivalry XI","Best XI Never to Win the Champions League","Best XI Never to Win the World Cup","Best XI Never to Win the Ballon d'Or","Best XI With Players From One Generation","Best XI With No Ballon d'Or Winners","Best XI With No Champions League Winners","Best XI With No World Cup Winners","Best Underrated Premier League XI","Best Complete Players XI","Best Intelligent Players XI","Best Leaders XI","Best Playmakers XI","Best Box-to-Box XI","Best Goal-Scoring XI","Best XI From 2000–2010","Best XI From 2010–2020","Best XI From 2015–2025","Best XI From 2020–Present","Best Forgotten Legends XI","Best One-Season Wonders XI"];
+const DEFAULT_BATTLE_CATEGORIES = ["Best Premier League XI", "Best LaLiga XI", "Best Serie A XI", "Best Bundesliga XI", "Best Ligue 1 XI", "Best Barcelona XI", "Best Real Madrid XI", "Best Manchester United XI", "Best Manchester City XI", "Best Liverpool XI", "Best Arsenal XI", "Best Chelsea XI", "Best Bayern Munich XI", "Best AC Milan XI", "Best Inter Milan XI", "Best Juventus XI", "Best PSG XI", "Best Ajax XI", "Best African XI", "Best Nigerian XI", "Best Brazilian XI", "Best Argentine XI", "Best French XI", "Best English XI", "Best Spanish XI", "Best German XI", "Best Italian XI", "Best Portuguese XI", "Best Dutch XI", "Best South American XI", "Best European XI", "Best Under-23 XI", "Best Under-21 XI", "Best Under-20 XI", "Best Young Players XI", "Best Veterans XI", "Best Players Over 30 XI", "Best Champions League XI", "Best World Cup XI", "Best European Championship XI", "Best Copa America XI", "Best AFCON XI", "Best Club World Cup XI", "Best Europa League XI", "Best All-Time XI", "Best 21st Century XI", "Best 20th Century XI", "Best 2010s XI", "Best 2020s XI", "Best Current XI", "Best Legends XI", "Best Prime XI", "Best Ballon d'Or Winners XI", "Best Champions League Winners XI", "Best World Cup Winners XI", "Best Players Without a World Cup XI", "Best Players Without a Ballon d'Or XI", "Best One-Club XI", "Best Players From One Country XI", "Best Players From Different Countries XI", "Best Players From Different Leagues XI", "Best Academy Graduates XI", "Best Wonderkid XI", "Best Underrated XI", "Best Cult Heroes XI", "Best Rivalry XI", "Best XI Never to Win the Champions League", "Best XI Never to Win the World Cup", "Best XI Never to Win the Ballon d'Or", "Best XI With Players From One Generation", "Best XI With No Ballon d'Or Winners", "Best XI With No Champions League Winners", "Best XI With No World Cup Winners", "Best Underrated Premier League XI", "Best Complete Players XI", "Best Intelligent Players XI", "Best Leaders XI", "Best Playmakers XI", "Best Box-to-Box XI", "Best Goal-Scoring XI", "Best XI From 2000–2010", "Best XI From 2010–2020", "Best XI From 2015–2025", "Best XI From 2020–Present", "Best Forgotten Legends XI", "Best One-Season Wonders XI"];
 
 const emptyLobby = {
   roomCode: "",
@@ -13,28 +14,63 @@ const emptyLobby = {
 };
 
 function SquadBattle() {
-  const [name, setName] = useState(
-    localStorage.getItem("footballHub.playerName") || ""
+  const [name, setName] = usePersistentState(
+    "footballHub.playerName",
+    ""
   );
-  const [roomCode, setRoomCode] = useState("");
-  const [lobby, setLobby] = useState(emptyLobby);
-  const [category, setCategory] = useState("");
+  const [roomCode, setRoomCode] = usePersistentState(
+    "footballHub.squadBattle.roomCode",
+    ""
+  );
+  const [lobby, setLobby] = usePersistentState(
+    "footballHub.squadBattle.lobby",
+    emptyLobby
+  );
+  const [category, setCategory] = usePersistentState(
+    "footballHub.squadBattle.category",
+    ""
+  );
+  // Read the latest squad ID each time this page opens. This keeps a new
+  // squad built during the battle from being replaced by an older saved ID.
   const [squadId, setSquadId] = useState(
     localStorage.getItem("footballHub.lastSquadId") || ""
   );
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [voteOptions, setVoteOptions] = useState([]);
-  const [results, setResults] = useState([]);
-  const [hasVoted, setHasVoted] = useState(false);
-
-  const isHost = useMemo(
-    () =>
-      lobby.room?.hostName?.toLowerCase() ===
-      name.trim().toLowerCase(),
-    [lobby.room, name]
+  const [voteOptions, setVoteOptions] = usePersistentState(
+    "footballHub.squadBattle.voteOptions",
+    []
   );
+  const [results, setResults] = usePersistentState(
+    "footballHub.squadBattle.results",
+    []
+  );
+  const [hasVoted, setHasVoted] = usePersistentState(
+    "footballHub.squadBattle.hasVoted",
+    false
+  );
+
+  const isHost = useMemo(() => {
+    const currentName = name.trim().toLowerCase();
+    if (!currentName) return false;
+
+    // Prefer the room's host name, but also check the participant list.
+    // This keeps the host controls visible if one response has incomplete room data.
+    const roomHost = String(lobby.room?.hostName || "")
+      .trim()
+      .toLowerCase();
+
+    return (
+      roomHost === currentName ||
+      lobby.players.some(
+        (player) =>
+          player.host &&
+          String(player.playerName || "").trim().toLowerCase() ===
+          currentName
+      )
+    );
+  }, [lobby.room, lobby.players, name]);
 
   async function loadRoom(code = roomCode) {
     if (!code) return;
@@ -59,6 +95,12 @@ function SquadBattle() {
       setError(err.message);
     }
   }
+
+  // Load categories when the page opens too, so a saved room still has
+  // category choices after a refresh or returning to this page.
+  useEffect(() => {
+    loadCategories();
+  }, []);
 
   useEffect(() => {
     if (!roomCode) return undefined;
@@ -98,7 +140,7 @@ function SquadBattle() {
         ...current,
         categories: uniqueCategories,
       }));
-    } catch (err) {
+    } catch {
       setLobby((current) => ({
         ...current,
         categories: DEFAULT_BATTLE_CATEGORIES.map(
@@ -134,6 +176,10 @@ function SquadBattle() {
       );
 
       setRoomCode(room.roomCode);
+      setCategory("");
+      setHasVoted(false);
+      setVoteOptions([]);
+      setResults([]);
 
       setLobby({
         roomCode: room.roomCode,
@@ -179,6 +225,10 @@ function SquadBattle() {
       );
 
       setRoomCode(code);
+      setCategory("");
+      setHasVoted(false);
+      setVoteOptions([]);
+      setResults([]);
 
       await loadCategories();
       await loadRoom(code);
@@ -369,7 +419,7 @@ function SquadBattle() {
       <section className="game-hero">
         <div>
           <span className="game-kicker">
-            ⚔️ SQUAD BATTLE
+            .SQUAD BATTLE
           </span>
 
           <h1>
@@ -774,7 +824,7 @@ function SquadBattle() {
                       disabled={
                         !category ||
                         lobby.players.length <
-                          2 ||
+                        2 ||
                         busy
                       }
                     >
@@ -785,13 +835,21 @@ function SquadBattle() {
               )}
 
             {status === "WAITING" &&
-  !isHost && (
-    <p className="notice">
-      {lobby.room.category
-        ? `${lobby.room.category} selected. Waiting for the host to start the battle...`
-        : "Waiting for the host to choose a category..."}
-    </p>
-  )}
+              isHost &&
+              lobby.players.length < 2 && (
+                <p className="notice">
+                  Share the room code with at least one other player. The battle can start once 2 or more players have joined.
+                </p>
+              )}
+
+            {status === "WAITING" &&
+              !isHost && (
+                <p className="notice">
+                  {lobby.room.category
+                    ? `${lobby.room.category} selected. Waiting for the host to start the battle...`
+                    : "Waiting for the host to choose a category..."}
+                </p>
+              )}
 
             {status === "BUILDING" && (
               <div className="submit-box">
@@ -927,9 +985,8 @@ function SquadBattle() {
 
             {(message || error) && (
               <div
-                className={`game-message ${
-                  error ? "error" : ""
-                }`}
+                className={`game-message ${error ? "error" : ""
+                  }`}
               >
                 {error || message}
               </div>

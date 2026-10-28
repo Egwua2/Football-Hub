@@ -1,60 +1,94 @@
 import { useMemo, useState } from "react";
+import { usePersistentState } from "../hooks/usePersistentState";
 import "./GamePages.css";
 
 const PLAYER_POOLS = {
   "Popular Players": [
-    "Lionel Messi","Cristiano Ronaldo","Kylian Mbappe","Erling Haaland","Vinicius Junior","Jude Bellingham",
-    "Mohamed Salah","Lamine Yamal","Neymar","Harry Kane","Robert Lewandowski","Kevin De Bruyne",
-    "Son Heung-min","Rodri","Ousmane Dembele","Victor Osimhen","Phil Foden","Virgil van Dijk",
-    "Luka Modric","Antoine Griezmann","Raphinha","Pedri","Bukayo Saka","Cole Palmer","Bruno Fernandes",
-    "Frenkie de Jong","Khvicha Kvaratskhelia","Rafael Leao","Lautaro Martinez","Federico Valverde",
-    "Jamal Musiala","Florian Wirtz","Joshua Kimmich","Thibaut Courtois","Jan Oblak","Mike Maignan",
-    "Achraf Hakimi","Alphonso Davies","Antonio Rudiger","Marquinhos","Christian Pulisic","Romelu Lukaku",
-    "Martin Odegaard","Declan Rice","William Saliba","Trent Alexander-Arnold","Andrew Robertson","Alisson",
-    "Bernardo Silva","Ruben Dias","John Stones","Kyle Walker","Gabriel Magalhaes","Gabriel Martinelli",
-    "Alexander Isak","Bruno Guimaraes","Anthony Gordon","Micky van de Ven","James Maddison","Dominic Solanke",
-    "Darwin Nunez","Luis Diaz","Diogo Jota","Enzo Fernandez","Moises Caicedo","Nicolas Jackson",
-    "Marc Cucurella","Reece James","Malo Gusto","Emiliano Martinez","Kai Havertz","Gabriel Jesus",
-    "Marcus Rashford","Mason Mount","Casemiro","Christian Eriksen","Lisandro Martinez","Matheus Cunha",
-    "Jarrod Bowen","Eberechi Eze","Michael Olise","Morgan Gibbs-White","Lucas Paqueta","Richarlison",
-    "Pedro Neto","Ben White","Conor Gallagher","Jack Grealish","Jordan Pickford","Paulo Dybala",
-    "Sandro Tonali","Nicolo Barella","Eduardo Camavinga","Aurelien Tchouameni","Arda Guler","Joao Felix",
-    "Joao Cancelo","Gavi","Dani Olmo","Rodrygo","Brahim Diaz","Eder Militao","Theo Hernandez",
-    "Dusan Vlahovic","Victor Boniface","Benjamin Sesko","Serge Gnabry","Leroy Sane","Kingsley Coman",
-    "Karim Benzema","Sadio Mane","N'Golo Kante","Toni Kroos","Sergio Ramos","Thiago Silva","Angel Di Maria",
-    "Edinson Cavani","Luis Suarez"
+    "Lionel Messi", "Cristiano Ronaldo", "Kylian Mbappe",
+    "Erling Haaland", "Vinicius Junior", "Jude Bellingham",
+    "Mohamed Salah", "Lamine Yamal", "Neymar", "Harry Kane",
+    "Robert Lewandowski", "Kevin De Bruyne", "Son Heung-min",
+    "Rodri", "Ousmane Dembele", "Victor Osimhen", "Phil Foden",
+    "Virgil van Dijk", "Luka Modric", "Antoine Griezmann",
+    "Raphinha", "Pedri", "Bukayo Saka", "Cole Palmer",
+    "Bruno Fernandes", "Frenkie de Jong",
+    "Khvicha Kvaratskhelia", "Rafael Leao", "Lautaro Martinez",
+    "Federico Valverde", "Jamal Musiala", "Florian Wirtz",
+    "Joshua Kimmich", "Thibaut Courtois", "Jan Oblak",
+    "Mike Maignan", "Achraf Hakimi", "Alphonso Davies",
+    "Antonio Rudiger", "Marquinhos", "Christian Pulisic",
+    "Romelu Lukaku", "Martin Odegaard", "Declan Rice",
+    "William Saliba", "Trent Alexander-Arnold",
+    "Andrew Robertson", "Alisson", "Bernardo Silva", "Ruben Dias",
+    "John Stones", "Kyle Walker", "Gabriel Magalhaes",
+    "Gabriel Martinelli", "Alexander Isak", "Bruno Guimaraes",
+    "Anthony Gordon", "Micky van de Ven", "James Maddison",
+    "Dominic Solanke", "Darwin Nunez", "Luis Diaz", "Diogo Jota",
+    "Enzo Fernandez", "Moises Caicedo", "Nicolas Jackson",
+    "Marc Cucurella", "Reece James", "Malo Gusto",
+    "Emiliano Martinez", "Kai Havertz", "Gabriel Jesus",
+    "Marcus Rashford", "Mason Mount", "Casemiro",
+    "Christian Eriksen", "Lisandro Martinez", "Matheus Cunha",
+    "Jarrod Bowen", "Eberechi Eze", "Michael Olise",
+    "Morgan Gibbs-White", "Lucas Paqueta", "Richarlison",
+    "Pedro Neto", "Ben White", "Conor Gallagher", "Jack Grealish",
+    "Jordan Pickford", "Paulo Dybala", "Sandro Tonali",
+    "Nicolo Barella", "Eduardo Camavinga", "Aurelien Tchouameni",
+    "Arda Guler", "Joao Felix", "Joao Cancelo", "Gavi",
+    "Dani Olmo", "Rodrygo", "Brahim Diaz", "Eder Militao",
+    "Theo Hernandez", "Dusan Vlahovic", "Victor Boniface",
+    "Benjamin Sesko", "Serge Gnabry", "Leroy Sane",
+    "Kingsley Coman", "Karim Benzema", "Sadio Mane",
+    "N'Golo Kante", "Toni Kroos", "Sergio Ramos", "Thiago Silva",
+    "Angel Di Maria", "Edinson Cavani", "Luis Suarez"
   ],
 
-  "Legends": [
-    "Pele","Diego Maradona","Johan Cruyff","Franz Beckenbauer","Zinedine Zidane","Ronaldo Nazario",
-    "Ronaldinho","Michel Platini","George Best","Garrincha","Eusebio","Ferenc Puskas","Marco van Basten",
-    "Ruud Gullit","Bobby Charlton","Cafu","Roberto Carlos","Rivaldo","Romario","Kaka","Dani Alves","Dunga",
-    "Zico","Xavi Hernandez","Andres Iniesta","Carles Puyol","Sergio Busquets","David Villa","Luis Suarez",
-    "Samuel Eto'o","Patrick Kluivert","Xabi Alonso","Iker Casillas","Fernando Torres","Sergio Ramos",
-    "Thierry Henry","Wayne Rooney","Steven Gerrard","Frank Lampard","Paul Scholes","Ryan Giggs",
-    "David Beckham","John Terry","Rio Ferdinand","Nemanja Vidic","Ashley Cole","Peter Schmeichel",
-    "Alan Shearer","Eric Cantona","Dennis Bergkamp","Patrick Vieira","Didier Drogba","Sergio Aguero",
-    "Yaya Toure","Vincent Kompany","Cesc Fabregas","Michael Essien","Robin van Persie","Petr Cech",
-    "Paolo Maldini","Andrea Pirlo","Francesco Totti","Alessandro Del Piero","Fabio Cannavaro",
-    "Gianluigi Buffon","Franco Baresi","Roberto Baggio","Filippo Inzaghi","Gennaro Gattuso","Luis Figo",
-    "Zlatan Ibrahimovic","Arjen Robben","Franck Ribery","Wesley Sneijder","Clarence Seedorf","Michael Ballack",
-    "Miroslav Klose","Andriy Shevchenko","Pavel Nedved","Ruud van Nistelrooy","Edgar Davids","Javier Zanetti",
-    "Hernan Crespo","Gabriel Batistuta","Diego Forlan"
+  Legends: [
+    "Pele", "Diego Maradona", "Johan Cruyff",
+    "Franz Beckenbauer", "Zinedine Zidane", "Ronaldo Nazario",
+    "Ronaldinho", "Michel Platini", "George Best", "Garrincha",
+    "Eusebio", "Ferenc Puskas", "Marco van Basten", "Ruud Gullit",
+    "Bobby Charlton", "Cafu", "Roberto Carlos", "Rivaldo",
+    "Romario", "Kaka", "Dani Alves", "Dunga", "Zico",
+    "Xavi Hernandez", "Andres Iniesta", "Carles Puyol",
+    "Sergio Busquets", "David Villa", "Luis Suarez",
+    "Samuel Eto'o", "Patrick Kluivert", "Xabi Alonso",
+    "Iker Casillas", "Fernando Torres", "Sergio Ramos",
+    "Thierry Henry", "Wayne Rooney", "Steven Gerrard",
+    "Frank Lampard", "Paul Scholes", "Ryan Giggs", "David Beckham",
+    "John Terry", "Rio Ferdinand", "Nemanja Vidic", "Ashley Cole",
+    "Peter Schmeichel", "Alan Shearer", "Eric Cantona",
+    "Dennis Bergkamp", "Patrick Vieira", "Didier Drogba",
+    "Sergio Aguero", "Yaya Toure", "Vincent Kompany",
+    "Cesc Fabregas", "Michael Essien", "Robin van Persie",
+    "Petr Cech", "Paolo Maldini", "Andrea Pirlo",
+    "Francesco Totti", "Alessandro Del Piero",
+    "Fabio Cannavaro", "Gianluigi Buffon", "Franco Baresi",
+    "Roberto Baggio", "Filippo Inzaghi", "Gennaro Gattuso",
+    "Luis Figo", "Zlatan Ibrahimovic", "Arjen Robben",
+    "Franck Ribery", "Wesley Sneijder", "Clarence Seedorf",
+    "Michael Ballack", "Miroslav Klose", "Andriy Shevchenko",
+    "Pavel Nedved", "Ruud van Nistelrooy", "Edgar Davids",
+    "Javier Zanetti", "Hernan Crespo", "Gabriel Batistuta",
+    "Diego Forlan"
   ]
 };
 
 const HARD_ADDITIONS = {
   "Popular Players": [
-    "Nicolo Barella", "Federico Valverde", "Joshua Kimmich", "Bernardo Silva",
-    "Khvicha Kvaratskhelia", "Randal Kolo Muani", "Jamal Musiala", "Alexander Isak"
+    "Nicolo Barella", "Federico Valverde", "Joshua Kimmich",
+    "Bernardo Silva", "Khvicha Kvaratskhelia",
+    "Randal Kolo Muani", "Jamal Musiala", "Alexander Isak"
   ],
   "Premier League Stars": [
-    "James Maddison", "Morgan Gibbs-White", "Dominic Solanke", "Joao Palhinha",
-    "Levi Colwill", "Kaoru Mitoma", "Moises Caicedo", "Ollie Watkins"
+    "James Maddison", "Morgan Gibbs-White", "Dominic Solanke",
+    "Joao Palhinha", "Levi Colwill", "Kaoru Mitoma",
+    "Moises Caicedo", "Ollie Watkins"
   ],
   Legends: [
-    "Roberto Baggio", "Michael Ballack", "Ronaldo Nazario", "Xabi Alonso",
-    "Patrick Vieira", "Rivaldo", "George Best", "Franz Beckenbauer"
+    "Roberto Baggio", "Michael Ballack", "Ronaldo Nazario",
+    "Xabi Alonso", "Patrick Vieira", "Rivaldo", "George Best",
+    "Franz Beckenbauer"
   ]
 };
 
@@ -65,42 +99,87 @@ function shuffle(items) {
 }
 
 function FootballImposter() {
-  const [names, setNames] = useState([
-    "Player 1",
-    "Player 2",
-    "Player 3",
-    "Player 4"
-  ]);
+  const [names, setNames] = usePersistentState(
+    "footballHub.imposter.names",
+    ["", "", "", ""]
+  );
 
-  const [category, setCategory] = useState("Popular Players");
-  const [hardMode, setHardMode] = useState(false);
+  const [category, setCategory] = usePersistentState(
+    "footballHub.imposter.category",
+    "Popular Players"
+  );
 
-  const [game, setGame] = useState(null);
-  const [stage, setStage] = useState("setup");
+  const [hardMode, setHardMode] = usePersistentState(
+    "footballHub.imposter.hardMode",
+    false
+  );
 
-  const [imposterCount, setImposterCount] = useState(1);
+  const [game, setGame] = usePersistentState(
+    "footballHub.imposter.game",
+    null
+  );
 
-  const [revealIndex, setRevealIndex] = useState(0);
-  const [cardRevealed, setCardRevealed] = useState(false);
+  const [stage, setStage] = usePersistentState(
+    "footballHub.imposter.stage",
+    "setup"
+  );
 
-  const [voterIndex, setVoterIndex] = useState(0);
+  const [imposterCount, setImposterCount] = usePersistentState(
+    "footballHub.imposter.imposterCount",
+    1
+  );
 
-  const [votes, setVotes] = useState({});
-  const [selectedVotes, setSelectedVotes] = useState([]);
+  const [revealIndex, setRevealIndex] = usePersistentState(
+    "footballHub.imposter.revealIndex",
+    0
+  );
 
-  const [finalGuess, setFinalGuess] = useState("");
-  const [outcome, setOutcome] = useState(null);
+  const [cardRevealed, setCardRevealed] = usePersistentState(
+    "footballHub.imposter.cardRevealed",
+    false
+  );
 
-  const [caughtImposters, setCaughtImposters] = useState([]);
-  const [escapedImposters, setEscapedImposters] = useState([]);
+  const [voterIndex, setVoterIndex] = usePersistentState(
+    "footballHub.imposter.voterIndex",
+    0
+  );
+
+  const [votes, setVotes] = usePersistentState(
+    "footballHub.imposter.votes",
+    {}
+  );
+
+  const [selectedVotes, setSelectedVotes] = usePersistentState(
+    "footballHub.imposter.selectedVotes",
+    []
+  );
+
+  const [finalGuess, setFinalGuess] = usePersistentState(
+    "footballHub.imposter.finalGuess",
+    ""
+  );
+
+  const [outcome, setOutcome] = usePersistentState(
+    "footballHub.imposter.outcome",
+    null
+  );
+
+  const [caughtImposters, setCaughtImposters] = usePersistentState(
+    "footballHub.imposter.caughtImposters",
+    []
+  );
+
+  const [escapedImposters, setEscapedImposters] = usePersistentState(
+    "footballHub.imposter.escapedImposters",
+    []
+  );
 
   const [error, setError] = useState("");
 
   const cleanNames = useMemo(
-    () =>
-      names.map(
-        (name, index) => name.trim() || `Player ${index + 1}`
-      ),
+    () => names.map(
+      (name, index) => name.trim() || `Player ${index + 1}`
+    ),
     [names]
   );
 
@@ -111,9 +190,7 @@ function FootballImposter() {
 
   function updateName(index, value) {
     setNames((current) =>
-      current.map((name, i) =>
-        i === index ? value : name
-      )
+      current.map((name, i) => i === index ? value : name)
     );
   }
 
@@ -122,7 +199,7 @@ function FootballImposter() {
 
     setNames((current) => [
       ...current,
-      `Player ${current.length + 1}`
+      ""
     ]);
   }
 
@@ -134,7 +211,10 @@ function FootballImposter() {
     );
 
     setImposterCount((current) =>
-      Math.min(current, Math.max(1, Math.floor((names.length - 1) / 2)))
+      Math.min(
+        current,
+        Math.max(1, Math.floor((names.length - 1) / 2))
+      )
     );
   }
 
@@ -145,9 +225,8 @@ function FootballImposter() {
     }
 
     if (
-      new Set(
-        cleanNames.map((name) => name.toLowerCase())
-      ).size !== cleanNames.length
+      new Set(cleanNames.map((name) => name.toLowerCase())).size
+      !== cleanNames.length
     ) {
       setError("Every player needs a different name.");
       return;
@@ -160,8 +239,7 @@ function FootballImposter() {
         ]
       : PLAYER_POOLS[category];
 
-    const secret =
-      pool[Math.floor(Math.random() * pool.length)];
+    const secret = pool[Math.floor(Math.random() * pool.length)];
 
     const shuffledPlayers = shuffle(
       cleanNames.map((_, index) => index)
@@ -177,26 +255,17 @@ function FootballImposter() {
       actualImposterCount
     );
 
-    setGame({
-      secret,
-      imposters,
-      category
-    });
+    setGame({ secret, imposters, category });
 
     setRevealIndex(0);
     setCardRevealed(false);
-
     setVoterIndex(0);
     setVotes({});
     setSelectedVotes([]);
-
     setFinalGuess("");
-
     setCaughtImposters([]);
     setEscapedImposters([]);
-
     setOutcome(null);
-
     setStage("reveal");
     setError("");
   }
@@ -220,9 +289,7 @@ function FootballImposter() {
 
     setSelectedVotes((current) => {
       if (current.includes(index)) {
-        return current.filter(
-          (playerIndex) => playerIndex !== index
-        );
+        return current.filter((playerIndex) => playerIndex !== index);
       }
 
       if (current.length >= game.imposters.length) {
@@ -236,15 +303,12 @@ function FootballImposter() {
   function submitVotes() {
     const requiredVotes = game.imposters.length;
 
-    if (selectedVotes.length !== requiredVotes) {
-      return;
-    }
+    if (selectedVotes.length !== requiredVotes) return;
 
     const updatedVotes = { ...votes };
 
     selectedVotes.forEach((index) => {
-      updatedVotes[index] =
-        (updatedVotes[index] || 0) + 1;
+      updatedVotes[index] = (updatedVotes[index] || 0) + 1;
     });
 
     setVotes(updatedVotes);
@@ -277,7 +341,6 @@ function FootballImposter() {
 
     setCaughtImposters(caught);
     setEscapedImposters(escaped);
-
     setSelectedVotes([]);
 
     if (escaped.length === 0) {
@@ -290,8 +353,7 @@ function FootballImposter() {
 
   function submitFinalGuess() {
     const correct =
-      finalGuess.trim().toLowerCase() ===
-      game.secret.toLowerCase();
+      finalGuess.trim().toLowerCase() === game.secret.toLowerCase();
 
     setOutcome(correct ? "imposter" : "crew");
     setStage("results");
@@ -300,19 +362,14 @@ function FootballImposter() {
   function reset() {
     setGame(null);
     setStage("setup");
-
     setRevealIndex(0);
     setCardRevealed(false);
-
     setVoterIndex(0);
     setVotes({});
     setSelectedVotes([]);
-
     setFinalGuess("");
-
     setCaughtImposters([]);
     setEscapedImposters([]);
-
     setOutcome(null);
     setError("");
   }
@@ -321,9 +378,7 @@ function FootballImposter() {
     <main className="game-page imposter-page">
       <section className="game-hero">
         <div>
-          <span className="game-kicker">
-            .FOOTBALL IMPOSTER
-          </span>
+          <span className="game-kicker">.FOOTBALL IMPOSTER</span>
 
           <h1>
             Who is the<span> IMPOSTER?</span>
@@ -346,9 +401,7 @@ function FootballImposter() {
       {stage === "setup" && (
         <section className="game-grid two">
           <div className="game-card">
-            <span className="step">
-              01 · PLAYERS
-            </span>
+            <span className="step">01 · PLAYERS</span>
 
             <h2>Who's playing?</h2>
 
@@ -359,26 +412,17 @@ function FootballImposter() {
 
             <div className="name-list">
               {names.map((name, index) => (
-                <div
-                  className="name-row"
-                  key={index}
-                >
+                <div className="name-row" key={index}>
                   <input
-                    value={name}
-                    onChange={(e) =>
-                      updateName(
-                        index,
-                        e.target.value
-                      )
-                    }
+                    value={/^Player\s+\d+$/i.test(name.trim()) ? "" : name}
+                    placeholder={`Player ${index + 1}`}
+                    onChange={(e) => updateName(index, e.target.value)}
                   />
 
                   {names.length > 3 && (
                     <button
                       className="mini-button"
-                      onClick={() =>
-                        removePlayer(index)
-                      }
+                      onClick={() => removePlayer(index)}
                     >
                       ×
                     </button>
@@ -396,8 +440,12 @@ function FootballImposter() {
             </button>
 
             <div className="imposter-count-box">
-              <h3>Number of Imposters:</h3>
+              <h3>Number of Imposters</h3>
 
+              <p>
+                With {cleanNames.length} players,
+                choose up to {maxImposters} imposters.
+              </p>
 
               <div className="category-list">
                 {Array.from(
@@ -411,12 +459,9 @@ function FootballImposter() {
                         ? "category active"
                         : "category"
                     }
-                    onClick={() =>
-                      setImposterCount(count)
-                    }
+                    onClick={() => setImposterCount(count)}
                   >
-                    {count} Imposter
-                    {count > 1 ? "s" : ""}
+                    {count} Imposter{count > 1 ? "s" : ""}
 
                     <span>
                       {count === 1
@@ -430,13 +475,9 @@ function FootballImposter() {
           </div>
 
           <div className="game-card">
-            <span className="step">
-              02 · CATEGORY
-            </span>
+            <span className="step">02 · CATEGORY</span>
 
-            <h2>
-              Choose your football world
-            </h2>
+            <h2>Choose your football world</h2>
 
             <div className="category-list">
               {categories.map((item) => (
@@ -447,21 +488,16 @@ function FootballImposter() {
                       ? "category active"
                       : "category"
                   }
-                  onClick={() =>
-                    setCategory(item)
-                  }
+                  onClick={() => setCategory(item)}
                 >
                   {item}
 
                   <span>
                     {PLAYER_POOLS[item].length +
-                      (hardMode &&
-                      HARD_ADDITIONS[item]
+                      (hardMode && HARD_ADDITIONS[item]
                         ? HARD_ADDITIONS[item].length
                         : 0)}{" "}
-                    {hardMode
-                      ? "picks"
-                      : "easy picks"}
+                    {hardMode ? "picks" : "easy picks"}
                   </span>
                 </button>
               ))}
@@ -469,42 +505,19 @@ function FootballImposter() {
 
             <div className="rules">
               <p>
-                • Everyone except the imposters sees
-                the secret footballer.
+                • Everyone except the imposters sees the secret footballer.
               </p>
-
+              <p>• Imposters only see the category.</p>
+              <p>• Each player gives one clue without saying the name.</p>
               <p>
-                • Imposters only see the category.
+                • Each voter chooses as many people as there are imposters.
               </p>
-
+              <p>• A voter cannot select the same person twice.</p>
+              <p>• Players cannot vote for themselves.</p>
               <p>
-                • Each player gives one clue without
-                saying the name.
+                • The top voted players are compared with the actual imposters.
               </p>
-
-              <p>
-                • Each voter chooses as many people
-                as there are imposters.
-              </p>
-
-              <p>
-                • A voter cannot select the same
-                person twice.
-              </p>
-
-              <p>
-                • Players cannot vote for themselves.
-              </p>
-
-              <p>
-                • The top voted players are compared
-                with the actual imposters.
-              </p>
-
-              <p>
-                • If all imposters are caught, they
-                get one final guess.
-              </p>
+              <p>• If all imposters are caught, they get one final guess.</p>
             </div>
 
             <button
@@ -514,26 +527,17 @@ function FootballImposter() {
                   ? "game-button secondary active"
                   : "game-button secondary"
               }
-              onClick={() =>
-                setHardMode((current) => !current)
-              }
+              onClick={() => setHardMode((current) => !current)}
             >
-              {hardMode
-                ? "🔥 Hard Mode: ON"
-                : "😌 Hard Mode: OFF"}
+              {hardMode ? "🔥 Hard Mode: ON" : "😌 Hard Mode: OFF"}
             </button>
 
-            <button
-              className="game-button"
-              onClick={startGame}
-            >
+            <button className="game-button" onClick={startGame}>
               Start Game
             </button>
 
             {error && (
-              <div className="game-message error">
-                {error}
-              </div>
+              <div className="game-message error">{error}</div>
             )}
           </div>
         </section>
@@ -543,18 +547,12 @@ function FootballImposter() {
         <section className="game-grid">
           <div className="game-card wide reveal-card">
             <span className="step">
-              PASS AND PLAY ·{" "}
-              {revealIndex + 1}/
-              {cleanNames.length}
+              PASS AND PLAY · {revealIndex + 1}/{cleanNames.length}
             </span>
 
-            <h2>
-              {cleanNames[revealIndex]}'s turn
-            </h2>
+            <h2>{cleanNames[revealIndex]}'s turn</h2>
 
-            <p>
-              Make sure only YOU can see the screen.
-            </p>
+            <p>Make sure only YOU can see the screen.</p>
 
             {!cardRevealed ? (
               <button
@@ -562,55 +560,31 @@ function FootballImposter() {
                 onClick={revealCard}
               >
                 <strong>?</strong>
-                <span>
-                  Tap to reveal your role
-                </span>
+                <span>Tap to reveal your role</span>
               </button>
             ) : (
               <div className="secret-box">
-                {game.imposters.includes(
-                  revealIndex
-                ) ? (
+                {game.imposters.includes(revealIndex) ? (
                   <>
-                    <strong>
-                      YOU ARE AN IMPOSTER 🕵️
-                    </strong>
-
-                    <span>
-                      Category: {game.category}
-                    </span>
-
+                    <strong>YOU ARE AN IMPOSTER 🕵️</strong>
+                    <span>Category: {game.category}</span>
                     <small>
-                      Blend in. Do not reveal that
-                      you don't know the player.
+                      Blend in. Do not reveal that you don't know the player.
                     </small>
                   </>
                 ) : (
                   <>
-                    <strong>
-                      {game.secret}
-                    </strong>
-
-                    <span>
-                      Category: {game.category}
-                    </span>
-
-                    <small>
-                      Give one clue about this
-                      player.
-                    </small>
+                    <strong>{game.secret}</strong>
+                    <span>Category: {game.category}</span>
+                    <small>Give one clue about this player.</small>
                   </>
                 )}
               </div>
             )}
 
             {cardRevealed && (
-              <button
-                className="game-button"
-                onClick={finishReveal}
-              >
-                {revealIndex ===
-                cleanNames.length - 1
+              <button className="game-button" onClick={finishReveal}>
+                {revealIndex === cleanNames.length - 1
                   ? "Start Clue Round"
                   : "Hide & Pass"}
               </button>
@@ -622,23 +596,18 @@ function FootballImposter() {
       {stage === "clues" && game && (
         <section className="game-grid two">
           <div className="game-card">
-            <span className="step">
-              CLUE ROUND
-            </span>
+            <span className="step">CLUE ROUND</span>
 
             <h2>Give your clues</h2>
 
             <p>
-              Go around the group. Each person gives
-              one short clue about the secret footballer.
+              Go around the group. Each person gives one short clue about
+              the secret footballer.
             </p>
 
             <div className="clue-rule-list">
               {cleanNames.map((name, index) => (
-                <div
-                  className="clue-player"
-                  key={name}
-                >
+                <div className="clue-player" key={name}>
                   <strong>{index + 1}</strong>
                   <span>{name}</span>
                   <em>✓</em>
@@ -646,26 +615,19 @@ function FootballImposter() {
               ))}
             </div>
 
-            <button
-              className="game-button"
-              onClick={() =>
-                setStage("voting")
-              }
-            >
+            <button className="game-button" onClick={() => setStage("voting")}>
               Start Voting
             </button>
           </div>
 
           <div className="game-card">
-            <span className="step">
-              SECRET
-            </span>
+            <span className="step">SECRET</span>
 
             <h2>Keep the answer hidden</h2>
 
             <p>
-              The imposters are trying to work out
-              who everyone is talking about.
+              The imposters are trying to work out who everyone is talking
+              about.
             </p>
 
             <div className="secret-box compact">
@@ -680,39 +642,26 @@ function FootballImposter() {
         <section className="game-grid">
           <div className="game-card wide">
             <span className="step">
-              VOTING · {voterIndex + 1}/
-              {cleanNames.length}
+              VOTING · {voterIndex + 1}/{cleanNames.length}
             </span>
 
-            <h2>
-              {cleanNames[voterIndex]},
-              {" "}
-              who are the imposters?
-            </h2>
+            <h2>{cleanNames[voterIndex]}, who are the imposters?</h2>
 
             <p>
-              Choose exactly{" "}
-              <strong>
-                {game.imposters.length}
-              </strong>{" "}
-              different player
-              {game.imposters.length > 1
-                ? "s"
-                : ""}.
+              Choose exactly <strong>{game.imposters.length}</strong>{" "}
+              different player{game.imposters.length > 1 ? "s" : ""}.
             </p>
 
             <p>
               Selected:{" "}
               <strong>
-                {selectedVotes.length}/
-                {game.imposters.length}
+                {selectedVotes.length}/{game.imposters.length}
               </strong>
             </p>
 
             <div className="vote-grid imposter-votes">
               {cleanNames.map((name, index) => {
-                const isSelected =
-                  selectedVotes.includes(index);
+                const isSelected = selectedVotes.includes(index);
 
                 return (
                   <button
@@ -722,12 +671,8 @@ function FootballImposter() {
                         ? "vote-option selected"
                         : "vote-option"
                     }
-                    onClick={() =>
-                      toggleVote(index)
-                    }
-                    disabled={
-                      index === voterIndex
-                    }
+                    onClick={() => toggleVote(index)}
+                    disabled={index === voterIndex}
                   >
                     <strong>{name}</strong>
 
@@ -747,13 +692,9 @@ function FootballImposter() {
               <button
                 className="game-button"
                 onClick={submitVotes}
-                disabled={
-                  selectedVotes.length !==
-                  game.imposters.length
-                }
+                disabled={selectedVotes.length !== game.imposters.length}
               >
-                {voterIndex ===
-                cleanNames.length - 1
+                {voterIndex === cleanNames.length - 1
                   ? "Submit Final Votes"
                   : "Submit Votes"}
               </button>
@@ -765,31 +706,22 @@ function FootballImposter() {
       {stage === "finalGuess" && game && (
         <section className="game-grid">
           <div className="game-card wide reveal-card">
-            <span className="step">
-              ALL IMPOSTERS CAUGHT!
-            </span>
+            <span className="step">ALL IMPOSTERS CAUGHT!</span>
 
             <h2>
               You were voted the imposter
-              {game.imposters.length > 1
-                ? "s"
-                : ""}
+              {game.imposters.length > 1 ? "s" : ""}
             </h2>
 
             <p>
-              All the imposters were caught!
-              One last chance — guess the secret
+              All the imposters were caught! One last chance — guess the secret
               footballer to steal the win.
             </p>
 
             <div className="secret-box compact">
               <input
                 value={finalGuess}
-                onChange={(e) =>
-                  setFinalGuess(
-                    e.target.value
-                  )
-                }
+                onChange={(e) => setFinalGuess(e.target.value)}
                 placeholder="Guess the footballer's name"
               />
             </div>
@@ -808,9 +740,7 @@ function FootballImposter() {
       {stage === "results" && game && (
         <section className="game-grid two">
           <div className="game-card">
-            <span className="step">
-              RESULTS
-            </span>
+            <span className="step">RESULTS</span>
 
             <h2>The votes are in</h2>
 
@@ -821,28 +751,13 @@ function FootballImposter() {
                   index,
                   count: votes[index] || 0
                 }))
-                .sort(
-                  (a, b) =>
-                    b.count - a.count
-                )
+                .sort((a, b) => b.count - a.count)
                 .map((item, index) => (
-                  <div
-                    className="result-row"
-                    key={item.name}
-                  >
-                    <strong>
-                      #{index + 1}
-                    </strong>
-
-                    <span>
-                      {item.name}
-                    </span>
-
+                  <div className="result-row" key={item.name}>
+                    <strong>#{index + 1}</strong>
+                    <span>{item.name}</span>
                     <b>
-                      {item.count} vote
-                      {item.count === 1
-                        ? ""
-                        : "s"}
+                      {item.count} vote{item.count === 1 ? "" : "s"}
                     </b>
                   </div>
                 ))}
@@ -850,13 +765,9 @@ function FootballImposter() {
           </div>
 
           <div className="game-card">
-            <span className="step">
-              REVEAL
-            </span>
+            <span className="step">REVEAL</span>
 
-            <h2>
-              The hidden players
-            </h2>
+            <h2>The hidden players</h2>
 
             <div className="secret-box">
               <strong
@@ -871,45 +782,29 @@ function FootballImposter() {
                   : "🛡️ Crew Wins!"}
               </strong>
 
-              <span>
-                The secret footballer was{" "}
-                {game.secret}.
-              </span>
+              <span>The secret footballer was {game.secret}.</span>
 
               {caughtImposters.length > 0 && (
                 <small>
-                  Caught imposter
-                  {caughtImposters.length > 1
-                    ? "s"
-                    : ""}:{" "}
+                  Caught imposter{caughtImposters.length > 1 ? "s" : ""}:{" "}
                   {caughtImposters
-                    .map(
-                      (index) =>
-                        cleanNames[index]
-                    )
+                    .map((index) => cleanNames[index])
                     .join(", ")}
                 </small>
               )}
 
               {escapedImposters.length > 0 && (
                 <small>
-                  Escaped imposter
-                  {escapedImposters.length > 1
-                    ? "s"
-                    : ""}:{" "}
+                  Escaped imposter{escapedImposters.length > 1 ? "s" : ""}:{" "}
                   {escapedImposters
-                    .map(
-                      (index) =>
-                        cleanNames[index]
-                    )
+                    .map((index) => cleanNames[index])
                     .join(", ")}
                 </small>
               )}
 
               {finalGuess.trim() && (
                 <small>
-                  Final guess: "
-                  {finalGuess.trim()}" —{" "}
+                  Final guess: "{finalGuess.trim()}" —{" "}
                   {outcome === "imposter"
                     ? "correct, nice steal 😈"
                     : "not quite"}
@@ -917,10 +812,7 @@ function FootballImposter() {
               )}
             </div>
 
-            <button
-              className="game-button secondary"
-              onClick={reset}
-            >
+            <button className="game-button secondary" onClick={reset}>
               Play Again
             </button>
           </div>

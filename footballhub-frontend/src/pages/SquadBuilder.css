@@ -1683,3 +1683,31 @@
     min-height: 42px;
   }
 }
+
+/* Keep the centre circle from the pitch image; hide the extra CSS circle overlay. */
+.pitch-export-area .football-pitch::after {
+  display: none;
+}
+
+/* Reset Squad button now matches the Create Squad button. */
+.secondary-action {
+  width: 100%;
+  margin-top: 18px;
+  padding: 13px;
+  border: none;
+  border-radius: 11px;
+  background: #3187e8;
+  color: white;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.secondary-action:hover:not(:disabled) {
+  background: #2678d4;
+}
+
+.secondary-action:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}

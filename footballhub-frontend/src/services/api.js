@@ -1,4 +1,19 @@
-const API_BASE_URL = `http://${window.location.hostname}:8080/api`;
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  `http://${window.location.hostname}:8080/api`;
+
+export function getPlayerImageUrl(url) {
+  if (!url || typeof url !== "string") return null;
+
+  const httpsUrl = url.replace(/^http:\/\//i, "https://");
+
+  // Only TheSportsDB pictures need the backend proxy.
+  if (!/^https:\/\/(www|r2)\.thesportsdb\.com\//i.test(httpsUrl)) {
+    return httpsUrl;
+  }
+
+  return `${API_BASE_URL}/images/proxy?url=${encodeURIComponent(httpsUrl)}`;
+}
 
 async function request(url, options = {}) {
   const response = await fetch(`${API_BASE_URL}${url}`, {
@@ -16,7 +31,7 @@ async function request(url, options = {}) {
       const data = await response.json();
       message = data.error || data.message || message;
     } catch {
-      // Non-JSON response.
+      // The server did not return JSON.
     }
 
     throw new Error(message);
@@ -117,7 +132,22 @@ export const squadApi = {
 
   getPlayers: async (id) => {
     const data = await request(`/squads/${id}/players`);
-    return normalizePlayers(data);
+
+    if (!Array.isArray(data)) {
+      return [];
+    }
+
+    // Each saved squad entry contains a nested player and its pitch position.
+    return data
+      .map((item) => {
+        const player = normalizePlayer(item?.player ?? item);
+
+        return {
+          ...player,
+          positionSlot: item?.positionSlot ?? item?.position_slot,
+        };
+      })
+      .filter((player) => player?.id != null && player.positionSlot);
   },
 
   addPlayer: (squadId, playerId, positionSlot) =>

@@ -1,12 +1,22 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../services/api";
+
+const POSITIONS = [
+  "GK", "CB", "LB", "RB", "LWB", "RWB",
+  "CDM", "CM", "CAM", "LM", "RM",
+  "LW", "RW", "CF", "ST",
+];
 
 function SignUp() {
   const navigate = useNavigate();
+
   const [form, setForm] = useState({
     username: "",
     email: "",
     age: "",
+    password: "",
+    confirmPassword: "",
     gender: "",
     firstName: "",
     lastName: "",
@@ -14,29 +24,50 @@ function SignUp() {
     favouriteClub: "",
     favouritePlayer: "",
     favouritePosition: "",
-    password: "",
-    confirmPassword: "",
   });
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   function handleChange(e) {
-    setForm((current) => ({ ...current, [e.target.name]: e.target.value }));
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
-    if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match.");
+    if (!form.username.trim()) {
+      setError("Username is required.");
       return;
     }
 
-    if (!form.age || Number(form.age) < 1 || Number(form.age) > 120) {
-      setError("Enter a valid age.");
+    const email = form.email.trim();
+
+    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    const age = Number(form.age);
+
+    if (!form.age || age < 13 || age > 120) {
+      setError("You must be between 13 and 120 years old.");
+      return;
+    }
+
+    if (!form.password.trim()) {
+      setError("Password is required.");
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match.");
       return;
     }
 
@@ -44,36 +75,58 @@ function SignUp() {
 
     try {
       const response = await fetch(
-        "https://football-hub-production-6005.up.railway.app/api/users/signup",
+        `${API_BASE_URL}/users/signup`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
-            username: form.username,
-            email: form.email,
-            age: form.age,
-            gender: form.gender,
-            firstName: form.firstName,
-            lastName: form.lastName,
-            country: form.country,
-            favouriteClub: form.favouriteClub,
-            favouritePlayer: form.favouritePlayer,
-            favouritePosition: form.favouritePosition,
+            username: form.username.trim(),
+            email,
+            age,
             password: form.password,
+            gender: form.gender || null,
+            firstName: form.firstName.trim() || null,
+            lastName: form.lastName.trim() || null,
+            country: form.country.trim() || null,
+            favouriteClub: form.favouriteClub.trim() || null,
+            favouritePlayer: form.favouritePlayer.trim() || null,
+            favouritePosition: form.favouritePosition || null,
           }),
         }
       );
 
-      const data = await response.json();
+      const text = await response.text();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Could not create account.");
+      let data;
+
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        data = text;
       }
 
-      localStorage.setItem("footballHubUser", JSON.stringify(data.user));
+      if (!response.ok) {
+        throw new Error(
+          typeof data === "string"
+            ? data
+            : data?.message || data?.error || "Could not create account."
+        );
+      }
+
+      if (!data || typeof data !== "object" || !data.id) {
+        throw new Error("The server returned an unexpected signup response.");
+      }
+
+      localStorage.setItem("footballHubUser", JSON.stringify(data));
       navigate("/");
     } catch (err) {
-      setError(err.message);
+      setError(
+        err.message === "Failed to fetch"
+          ? "Cannot reach the server. Please try again shortly."
+          : err.message
+      );
     } finally {
       setLoading(false);
     }
@@ -86,8 +139,10 @@ function SignUp() {
           <span className="auth-logo-top">FH</span>
           <span className="auth-logo-bottom">FOOTY HUB</span>
         </div>
+
         <h1>Football Hub</h1>
         <p className="auth-subtitle">Create your account</p>
+
         {error && <div className="auth-error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
@@ -111,86 +166,30 @@ function SignUp() {
             required
           />
 
-          <input
-            type="number"
-            name="age"
-            placeholder="Age"
-            min="1"
-            max="120"
-            value={form.age}
-            onChange={handleChange}
-            required
-          />
-
-          <div className="auth-section-label">
-            About you <span>Optional</span>
-          </div>
-
           <div className="auth-two-column">
             <input
-              type="text"
-              name="firstName"
-              placeholder="First name"
-              value={form.firstName}
+              type="number"
+              name="age"
+              placeholder="Age"
+              value={form.age}
               onChange={handleChange}
+              min="13"
+              max="120"
+              required
             />
 
-            <input
-              type="text"
-              name="lastName"
-              placeholder="Last name"
-              value={form.lastName}
+            <select
+              name="gender"
+              value={form.gender}
               onChange={handleChange}
-            />
-          </div>
-
-          <div className="auth-two-column">
-            <select name="gender" value={form.gender} onChange={handleChange}>
-              <option value="">Gender</option>
+            >
+              <option value="">Gender (optional)</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
+              <option value="Other">Other</option>
               <option value="Prefer not to say">Prefer not to say</option>
             </select>
-
-            <input
-              type="text"
-              name="country"
-              placeholder="Country"
-              value={form.country}
-              onChange={handleChange}
-            />
           </div>
-
-          <input
-            type="text"
-            name="favouriteClub"
-            placeholder="Favourite club"
-            value={form.favouriteClub}
-            onChange={handleChange}
-          />
-
-          <input
-            type="text"
-            name="favouritePlayer"
-            placeholder="Favourite player"
-            value={form.favouritePlayer}
-            onChange={handleChange}
-          />
-
-          <select
-            name="favouritePosition"
-            value={form.favouritePosition}
-            onChange={handleChange}
-          >
-            <option value="">Favourite position</option>
-            <option value="GK">GK</option>
-            <option value="Defender">Defender</option>
-            <option value="Midfielder">Midfielder</option>
-            <option value="Winger">Winger</option>
-            <option value="Forward">Forward</option>
-          </select>
-
-          <div className="auth-section-label">Security</div>
 
           <div className="password-field">
             <input
@@ -228,6 +227,67 @@ function SignUp() {
             >
               {showConfirmPassword ? "Hide" : "Show"}
             </button>
+          </div>
+
+          <div className="auth-section-label">
+            Profile details <span>(optional, can add later)</span>
+          </div>
+
+          <div className="auth-two-column">
+            <input
+              type="text"
+              name="firstName"
+              placeholder="First name"
+              value={form.firstName}
+              onChange={handleChange}
+            />
+
+            <input
+              type="text"
+              name="lastName"
+              placeholder="Last name"
+              value={form.lastName}
+              onChange={handleChange}
+            />
+          </div>
+
+          <input
+            type="text"
+            name="country"
+            placeholder="Country"
+            value={form.country}
+            onChange={handleChange}
+          />
+
+          <input
+            type="text"
+            name="favouriteClub"
+            placeholder="Favourite club"
+            value={form.favouriteClub}
+            onChange={handleChange}
+          />
+
+          <div className="auth-two-column">
+            <input
+              type="text"
+              name="favouritePlayer"
+              placeholder="Favourite player"
+              value={form.favouritePlayer}
+              onChange={handleChange}
+            />
+
+            <select
+              name="favouritePosition"
+              value={form.favouritePosition}
+              onChange={handleChange}
+            >
+              <option value="">Favourite position</option>
+              {POSITIONS.map((position) => (
+                <option key={position} value={position}>
+                  {position}
+                </option>
+              ))}
+            </select>
           </div>
 
           <button type="submit" disabled={loading}>

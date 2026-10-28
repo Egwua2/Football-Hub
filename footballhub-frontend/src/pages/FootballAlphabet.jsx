@@ -70,7 +70,7 @@ function FootballAlphabet() {
   const [checking, setChecking] = useState(false);
 
   const cleanNames = useMemo(
-    () => names.map((name, index) => name.trim() || `Player ${index + 1}`),
+    () => names.map((name) => name.trim()),
     [names]
   );
 
@@ -92,6 +92,11 @@ function FootballAlphabet() {
   }
 
   function startGame() {
+    if (cleanNames.some((name) => !name)) {
+      setError("Please enter a name for every player.");
+      return;
+    }
+
     const letters = drawLetters(ROUNDS);
     setGame({
       round: 1,
@@ -196,7 +201,12 @@ function FootballAlphabet() {
             <div className="name-list">
               {names.map((name, index) => (
                 <div className="name-row" key={index}>
-                  <input value={name} onChange={(e) => setNames((current) => current.map((item, i) => i === index ? e.target.value : item))} placeholder={`Player ${index + 1}`} />
+                  <input
+                    value={name}
+                    onChange={(e) => setNames((current) => current.map((item, i) => i === index ? e.target.value : item))}
+                    placeholder={`Player ${index + 1}`}
+                    autoComplete="off"
+                  />
                   {names.length > 1 && <button className="mini-button" onClick={() => setNames((current) => current.filter((_, i) => i !== index))}>×</button>}
                 </div>
               ))}
@@ -215,6 +225,7 @@ function FootballAlphabet() {
               <p>• Each correct answer is one point.</p>
             </div>
             <button className="game-button" onClick={startGame}>Start Alphabet</button>
+            {error && <div className="game-message error">{error}</div>}
           </div>
         </section>
       )}

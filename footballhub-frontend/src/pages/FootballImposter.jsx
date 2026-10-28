@@ -94,8 +94,16 @@ const HARD_ADDITIONS = {
 
 const categories = Object.keys(PLAYER_POOLS);
 
+// Fisher-Yates shuffle: a genuinely uniform random shuffle.
 function shuffle(items) {
-  return [...items].sort(() => Math.random() - 0.5);
+  const array = [...items];
+
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+
+  return array;
 }
 
 function FootballImposter() {
@@ -197,10 +205,7 @@ function FootballImposter() {
   function addPlayer() {
     if (names.length >= 10) return;
 
-    setNames((current) => [
-      ...current,
-      ""
-    ]);
+    setNames((current) => [...current, ""]);
   }
 
   function removePlayer(index) {
@@ -219,6 +224,11 @@ function FootballImposter() {
   }
 
   function startGame() {
+    if (cleanNames.some((name) => !name)) {
+      setError("Please enter a name for every player.");
+      return;
+    }
+
     if (cleanNames.length < 3) {
       setError("You need at least 3 players.");
       return;
@@ -417,6 +427,7 @@ function FootballImposter() {
                     value={/^Player\s+\d+$/i.test(name.trim()) ? "" : name}
                     placeholder={`Player ${index + 1}`}
                     onChange={(e) => updateName(index, e.target.value)}
+                    autoComplete="off"
                   />
 
                   {names.length > 3 && (

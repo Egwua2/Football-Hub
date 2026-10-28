@@ -1,4 +1,6 @@
+/* Shared theme fixes and refreshed Football Who Am I results. Loaded last. */
 
+/* Finish screen: works in dark and light themes */
 .who-am-i-result {
   padding: clamp(22px, 4vw, 42px);
   overflow: hidden;

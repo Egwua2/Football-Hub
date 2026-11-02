@@ -9,7 +9,9 @@ import Football.Hub.model.Squad;
 import Football.Hub.repository.BattleCategoryRepository;
 import Football.Hub.repository.BattleParticipantRepository;
 import Football.Hub.repository.BattleRoomRepository;
+import Football.Hub.repository.BattleVoteRepository;
 import Football.Hub.repository.SquadRepository;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -22,6 +24,7 @@ public class BattleRoomService {
     private final BattleRoomRepository battleRoomRepository;
     private final BattleParticipantRepository battleParticipantRepository;
     private final BattleCategoryRepository battleCategoryRepository;
+    private final BattleVoteRepository battleVoteRepository;
     private final SquadRepository squadRepository;
 
     private static final List<String> DEFAULT_CATEGORIES = List.of(
@@ -117,11 +120,13 @@ public class BattleRoomService {
             BattleRoomRepository battleRoomRepository,
             BattleParticipantRepository battleParticipantRepository,
             BattleCategoryRepository battleCategoryRepository,
+            BattleVoteRepository battleVoteRepository,
             SquadRepository squadRepository) {
 
         this.battleRoomRepository = battleRoomRepository;
         this.battleParticipantRepository = battleParticipantRepository;
         this.battleCategoryRepository = battleCategoryRepository;
+        this.battleVoteRepository = battleVoteRepository;
         this.squadRepository = squadRepository;
     }
 
@@ -207,6 +212,110 @@ public class BattleRoomService {
          * fails with "already started".
          */
         return battleParticipantRepository.save(participant);
+    }
+
+    @Transactional
+    public void leaveRoom(String roomCode, String playerName) {
+
+        if (playerName == null || playerName.isBlank()) {
+            throw new IllegalArgumentException("Player name is required.");
+        }
+
+        BattleRoom room = getRoom(roomCode);
+
+        BattleParticipant leavingPlayer =
+                battleParticipantRepository
+                        .findByRoomIdAndPlayerName(
+                                room.getId(),
+                                playerName.trim()
+                        )
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "You are not a participant in this room."
+                                ));
+
+        Long leavingPlayerId = leavingPlayer.getId();
+
+        // Remove votes connected to the player before deleting the participant.
+        List<Football.Hub.model.BattleVote> relatedVotes =
+                battleVoteRepository.findByRoomId(room.getId())
+                        .stream()
+                        .filter(vote ->
+                                vote.getVoter().getId().equals(leavingPlayerId) ||
+                                vote.getVotedFor().getId().equals(leavingPlayerId)
+                        )
+                        .toList();
+
+        battleVoteRepository.deleteAll(relatedVotes);
+
+        boolean wasHost = leavingPlayer.isHost();
+
+        List<BattleParticipant> remainingPlayers =
+                new ArrayList<>(
+                        battleParticipantRepository.findByRoomId(room.getId())
+                );
+
+        remainingPlayers.removeIf(
+                player -> player.getId().equals(leavingPlayerId)
+        );
+
+        battleParticipantRepository.delete(leavingPlayer);
+
+        // If everyone has left, remove the empty room as well.
+        if (remainingPlayers.isEmpty()) {
+            battleRoomRepository.delete(room);
+            return;
+        }
+
+        // When the host leaves, promote the earliest remaining participant.
+        if (wasHost) {
+            BattleParticipant nextHost = remainingPlayers.get(0);
+
+            for (BattleParticipant player : remainingPlayers) {
+                player.setHost(player.getId().equals(nextHost.getId()));
+                battleParticipantRepository.save(player);
+            }
+
+            room.setHostName(nextHost.getPlayerName());
+        }
+
+        // A battle cannot continue with fewer than two players.
+        // Return it to the lobby so another player can join.
+        if (remainingPlayers.size() < 2 &&
+                room.getStatus() != BattleRoomStatus.WAITING) {
+
+            battleVoteRepository.deleteAll(
+                    battleVoteRepository.findByRoomId(room.getId())
+            );
+
+            room.setStatus(BattleRoomStatus.WAITING);
+            room.setCategory(null);
+
+            for (BattleParticipant player : remainingPlayers) {
+                player.setSubmitted(false);
+                player.setSquad(null);
+                player.setStatus(BattleParticipantStatus.BUILDING);
+                battleParticipantRepository.save(player);
+            }
+        } else if (room.getStatus() == BattleRoomStatus.BUILDING) {
+
+            long submittedCount = remainingPlayers.stream()
+                    .filter(BattleParticipant::isSubmitted)
+                    .count();
+
+            if (remainingPlayers.size() >= 2 &&
+                    submittedCount == remainingPlayers.size()) {
+
+                room.setStatus(BattleRoomStatus.VOTING);
+
+                for (BattleParticipant player : remainingPlayers) {
+                    player.setStatus(BattleParticipantStatus.VOTING);
+                    battleParticipantRepository.save(player);
+                }
+            }
+        }
+
+        battleRoomRepository.save(room);
     }
 
     public List<BattleParticipant> getParticipants(String roomCode) {

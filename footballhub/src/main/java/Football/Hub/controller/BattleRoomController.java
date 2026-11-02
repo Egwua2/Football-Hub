@@ -96,6 +96,27 @@ public class BattleRoomController {
         }
     }
 
+    @DeleteMapping("/{roomCode}/leave")
+    public ResponseEntity<?> leaveRoom(
+            @PathVariable String roomCode,
+            @RequestBody Map<String, String> request) {
+
+        try {
+            battleRoomService.leaveRoom(
+                    roomCode,
+                    request.get("playerName")
+            );
+
+            return ResponseEntity.noContent().build();
+
+        } catch (IllegalArgumentException |
+                 IllegalStateException e) {
+
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/{roomCode}/players")
     public ResponseEntity<?> getPlayers(
             @PathVariable String roomCode) {

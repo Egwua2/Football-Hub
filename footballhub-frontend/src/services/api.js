@@ -202,6 +202,12 @@ export const battleApi = {
       body: JSON.stringify({ playerName }),
     }),
 
+  leaveRoom: (roomCode, playerName) =>
+    request(`/battle/rooms/${encodeURIComponent(roomCode)}/leave`, {
+      method: "DELETE",
+      body: JSON.stringify({ playerName }),
+    }),
+
   getCategories: () =>
     request("/battle/rooms/categories"),
 

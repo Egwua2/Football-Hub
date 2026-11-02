@@ -33,7 +33,7 @@ function SquadBattle() {
   // Remember which room this browser created so a refresh does not turn
   // the host into a normal participant while the room data is reloading.
   const [hostRoomCode, setHostRoomCode] = useState(
-    localStorage.getItem("footballHub.squadBattle.hostRoomCode") || ""
+    () => sessionStorage.getItem("footballHub.squadBattle.hostRoomCode") || ""
   );
   // Read the latest squad ID each time this page opens. This keeps a new
   // squad built during the battle from being replaced by an older saved ID.
@@ -207,10 +207,11 @@ function SquadBattle() {
         "footballHub.playerName",
         name.trim()
       );
-      localStorage.setItem(
+      sessionStorage.setItem(
         "footballHub.squadBattle.hostRoomCode",
         room.roomCode
       );
+      localStorage.removeItem("footballHub.squadBattle.hostRoomCode");
       setHostRoomCode(room.roomCode);
 
       setRoomCode(room.roomCode);
@@ -261,7 +262,8 @@ function SquadBattle() {
         "footballHub.playerName",
         name.trim()
       );
-      // This browser joined as a participant, not as the room host.
+      // This tab joined as a participant, not as the room host.
+      sessionStorage.removeItem("footballHub.squadBattle.hostRoomCode");
       localStorage.removeItem("footballHub.squadBattle.hostRoomCode");
       setHostRoomCode("");
 
@@ -280,6 +282,54 @@ function SquadBattle() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function leaveRoom() {
+    const code = String(roomCode || lobby.roomCode || "")
+      .trim()
+      .toUpperCase();
+
+    if (!code) return;
+
+    const leaveMessage = isHost
+      ? "Leave this room? Another player will become the host."
+      : "Leave this room?";
+
+    if (!window.confirm(leaveMessage)) return;
+
+    setBusy(true);
+    setError("");
+
+    let leaveError = "";
+
+    try {
+      await battleApi.leaveRoom(code, name.trim());
+    } catch (err) {
+      leaveError = err.message || "The server could not remove you from the room.";
+    }
+
+    // Clear this browser tab's room state even if the server request fails,
+    // so the player is never trapped in a saved lobby.
+    setRoomCode("");
+    setLobby(emptyLobby);
+    setCategory("");
+    setVoteOptions([]);
+    setResults([]);
+    setHasVoted(false);
+    setHostRoomCode("");
+    sessionStorage.removeItem("footballHub.squadBattle.hostRoomCode");
+    localStorage.removeItem("footballHub.squadBattle.hostRoomCode");
+
+    if (leaveError) {
+      setMessage("This room was cleared from this browser.");
+      setError(
+        `The server could not remove you from the room: ${leaveError}`
+      );
+    } else {
+      setMessage(`You left room ${code}.`);
+    }
+
+    setBusy(false);
   }
 
   async function chooseCategory() {
@@ -564,6 +614,12 @@ function SquadBattle() {
         </section>
       )}
 
+      {!lobby.room && (message || error) && (
+        <div className={`game-message ${error ? "error" : ""}`}>
+          {error || message}
+        </div>
+      )}
+
       {lobby.room && (
         <section className="game-grid">
           <div className="game-card wide">
@@ -579,11 +635,22 @@ function SquadBattle() {
                 </h2>
               </div>
 
-              <span
-                className={`status ${status.toLowerCase()}`}
-              >
-                {status}
-              </span>
+              <div className="room-header-actions">
+                <span
+                  className={`status ${status.toLowerCase()}`}
+                >
+                  {status}
+                </span>
+
+                <button
+                  type="button"
+                  className="game-button secondary leave-room-button"
+                  onClick={leaveRoom}
+                  disabled={busy}
+                >
+                  Leave Room
+                </button>
+              </div>
             </div>
 
             <div className="player-list">

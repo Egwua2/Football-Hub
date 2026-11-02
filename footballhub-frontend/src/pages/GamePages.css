@@ -1054,3 +1054,35 @@
     font-size: 1.6rem;
   }
 }
+
+
+/* Squad Battle room actions */
+.room-header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.room-header-actions .game-button {
+  margin-top: 0;
+}
+
+.leave-room-button {
+  border-color: rgba(255, 112, 112, 0.28) !important;
+  background: rgba(92, 35, 43, 0.35) !important;
+  color: #ffb0b0 !important;
+}
+
+.leave-room-button:hover:not(:disabled) {
+  border-color: rgba(255, 112, 112, 0.6) !important;
+  background: rgba(125, 42, 52, 0.55) !important;
+}
+
+@media (max-width: 600px) {
+  .room-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

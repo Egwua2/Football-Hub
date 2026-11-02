@@ -5,7 +5,7 @@ const localApiBaseUrl = import.meta.env.DEV
 
 export const API_BASE_URL = (
   configuredApiBaseUrl || localApiBaseUrl
-).replace(/\\/+$/, "");
+).replace(/\/+$/, "");
 
 export function getPlayerImageUrl(url) {
   if (!url || typeof url !== "string") return null;

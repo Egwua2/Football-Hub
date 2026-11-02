@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: footballhub-api
+    runtime: docker
+    region: frankfurt
+    plan: free
+    dockerfilePath: ./footballhub/Dockerfile
+    dockerContext: ./footballhub
+    healthCheckPath: /api/health
+    envVars:
+      # Enter the connection values from your managed MySQL database in Render.
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: APP_CORS_ALLOWED_ORIGIN_PATTERNS
+        value: http://localhost:5173,http://127.0.0.1:5173,https://*.vercel.app
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: update
+      - key: SPRING_JPA_SHOW_SQL
+        value: "false"

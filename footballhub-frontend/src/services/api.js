@@ -1,6 +1,11 @@
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  `http://${window.location.hostname}:8080/api`;
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const localApiBaseUrl = import.meta.env.DEV
+  ? `http://${window.location.hostname}:8080/api`
+  : "";
+
+export const API_BASE_URL = (
+  configuredApiBaseUrl || localApiBaseUrl
+).replace(/\\/+$/, "");
 
 export function getPlayerImageUrl(url) {
   if (!url || typeof url !== "string") return null;
@@ -12,10 +17,18 @@ export function getPlayerImageUrl(url) {
     return httpsUrl;
   }
 
-  return `${API_BASE_URL}/images/proxy?url=${encodeURIComponent(httpsUrl)}`;
+  return API_BASE_URL
+    ? `${API_BASE_URL}/images/proxy?url=${encodeURIComponent(httpsUrl)}`
+    : httpsUrl;
 }
 
 async function request(url, options = {}) {
+  if (!API_BASE_URL) {
+    throw new Error(
+      "The Football Hub backend URL is missing. Set VITE_API_BASE_URL to your Render API address ending in /api."
+    );
+  }
+
   const response = await fetch(`${API_BASE_URL}${url}`, {
     headers: {
       "Content-Type": "application/json",

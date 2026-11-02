@@ -76,10 +76,27 @@ function SquadBattle() {
     if (!code) return;
 
     try {
-      const [room, players] = await Promise.all([
-        battleApi.getRoom(code),
-        battleApi.getPlayers(code),
-      ]);
+      const room = await battleApi.getRoom(code);
+      let fetchedPlayers = [];
+
+      try {
+        const response = await battleApi.getPlayers(code);
+        fetchedPlayers = Array.isArray(response) ? response : [];
+      } catch (playersError) {
+        console.error("Could not refresh Squad Battle players:", playersError);
+      }
+
+      // Use whichever response contains the most complete participant list.
+      // The room response also includes its participants, so this avoids
+      // leaving the lobby stuck with only the host if /players is stale.
+      const roomPlayers = Array.isArray(room?.participants)
+        ? room.participants
+        : [];
+
+      const players =
+        roomPlayers.length > fetchedPlayers.length
+          ? roomPlayers
+          : fetchedPlayers;
 
       setLobby((current) => ({
         ...current,
@@ -262,9 +279,12 @@ function SquadBattle() {
         ...current,
         room,
       }));
+      setCategory(room.category || category);
+
+      await loadRoom(roomCode);
 
       setMessage(
-        `${category} selected.`
+        `${room.category || category} selected.`
       );
     } catch (err) {
       setError(err.message);
@@ -823,8 +843,7 @@ function SquadBattle() {
                       onClick={startBattle}
                       disabled={
                         !category ||
-                        lobby.players.length <
-                        2 ||
+                        category !== lobby.room?.category ||
                         busy
                       }
                     >

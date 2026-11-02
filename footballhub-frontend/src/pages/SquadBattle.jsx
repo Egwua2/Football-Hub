@@ -30,6 +30,11 @@ function SquadBattle() {
     "footballHub.squadBattle.category",
     ""
   );
+  // Remember which room this browser created so a refresh does not turn
+  // the host into a normal participant while the room data is reloading.
+  const [hostRoomCode, setHostRoomCode] = useState(
+    localStorage.getItem("footballHub.squadBattle.hostRoomCode") || ""
+  );
   // Read the latest squad ID each time this page opens. This keeps a new
   // squad built during the battle from being replaced by an older saved ID.
   const [squadId, setSquadId] = useState(
@@ -53,24 +58,35 @@ function SquadBattle() {
 
   const isHost = useMemo(() => {
     const currentName = name.trim().toLowerCase();
-    if (!currentName) return false;
+    const currentRoomCode = String(
+      lobby.room?.roomCode || lobby.roomCode || roomCode || ""
+    ).trim().toUpperCase();
 
-    // Prefer the room's host name, but also check the participant list.
-    // This keeps the host controls visible if one response has incomplete room data.
     const roomHost = String(lobby.room?.hostName || "")
       .trim()
       .toLowerCase();
 
-    return (
-      roomHost === currentName ||
-      lobby.players.some(
-        (player) =>
-          player.host &&
-          String(player.playerName || "").trim().toLowerCase() ===
-          currentName
-      )
-    );
-  }, [lobby.room, lobby.players, name]);
+    const hostFromRoom =
+      Boolean(currentName) &&
+      (
+        roomHost === currentName ||
+        lobby.players.some(
+          (player) =>
+            player.host &&
+            String(player.playerName || "").trim().toLowerCase() ===
+            currentName
+        )
+      );
+
+    const hostRememberedOnThisBrowser =
+      Boolean(currentRoomCode) &&
+      String(hostRoomCode || "").trim().toUpperCase() ===
+        currentRoomCode;
+
+    // The saved marker is only created by createRoom() and removed by
+    // joinRoom(), so the host keeps their controls after refreshing.
+    return hostFromRoom || hostRememberedOnThisBrowser;
+  }, [lobby.room, lobby.roomCode, lobby.players, name, roomCode, hostRoomCode]);
 
   async function loadRoom(code = roomCode) {
     if (!code) return;
@@ -191,6 +207,11 @@ function SquadBattle() {
         "footballHub.playerName",
         name.trim()
       );
+      localStorage.setItem(
+        "footballHub.squadBattle.hostRoomCode",
+        room.roomCode
+      );
+      setHostRoomCode(room.roomCode);
 
       setRoomCode(room.roomCode);
       setCategory("");
@@ -240,6 +261,9 @@ function SquadBattle() {
         "footballHub.playerName",
         name.trim()
       );
+      // This browser joined as a participant, not as the room host.
+      localStorage.removeItem("footballHub.squadBattle.hostRoomCode");
+      setHostRoomCode("");
 
       setRoomCode(code);
       setCategory("");

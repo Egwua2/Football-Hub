@@ -1,0 +1,15 @@
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Node / Vite
+node_modules/
+dist/
+*.log
+
+# Java / Maven
+**/target/
+
+# Docker overrides and local data
+docker-compose.override.yml

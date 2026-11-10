@@ -95,7 +95,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/health",
-                                "/api/images/proxy"
+                                "/api/images/proxy",
+                                "/api/battle/rooms/categories"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

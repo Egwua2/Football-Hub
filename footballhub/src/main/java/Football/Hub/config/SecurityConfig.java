@@ -1,12 +1,17 @@
 package Football.Hub.config;
 
+import Football.Hub.security.BearerTokenAuthenticationFilter;
+import Football.Hub.service.AuthSessionService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -40,7 +45,9 @@ public class SecurityConfig {
                 "DELETE", "OPTIONS"
         ));
 
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedHeaders(List.of(
+                "Authorization", "Content-Type", "Accept"
+        ));
         config.setAllowCredentials(false);
         config.setMaxAge(3600L);
 
@@ -55,15 +62,48 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            CorsConfigurationSource corsConfigurationSource)
+            CorsConfigurationSource corsConfigurationSource,
+            AuthSessionService authSessionService)
             throws Exception {
+
+        BearerTokenAuthenticationFilter tokenFilter =
+                new BearerTokenAuthenticationFilter(authSessionService);
 
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(
-                        corsConfigurationSource))
-                .authorizeHttpRequests(auth ->
-                        auth.anyRequest().permitAll());
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(
+                                org.springframework.security.config.http.SessionCreationPolicy.STATELESS))
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
+                .exceptionHandling(exceptions ->
+                        exceptions.authenticationEntryPoint(
+                                (request, response, authException) ->
+                                        response.sendError(
+                                                HttpStatus.UNAUTHORIZED.value(),
+                                                "Authentication required."
+                                        )
+                        ))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/users/signup",
+                                "/api/users/login"
+                        ).permitAll()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/health",
+                                "/api/images/proxy",
+                                "/api/battle/rooms/categories"
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(
+                        tokenFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }

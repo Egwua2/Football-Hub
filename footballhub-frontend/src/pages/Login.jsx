@@ -16,7 +16,7 @@ function Login() {
 
   // Wake the sleeping backend as soon as the login page opens.
   useEffect(() => {
-    fetch(\`\${API_BASE_URL}/battle/rooms/categories\`).catch(() => {});
+    fetch(API_BASE_URL + "/battle/rooms/categories").catch(() => {});
   }, []);
 
   function handleChange(e) {
@@ -33,7 +33,7 @@ function Login() {
 
     try {
       const response = await fetch(
-        \`\${API_BASE_URL}/users/login\`,
+        API_BASE_URL + "/users/login",
         {
           method: "POST",
           headers: {

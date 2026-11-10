@@ -92,7 +92,11 @@ public class SecurityConfig {
                                 "/api/users/signup",
                                 "/api/users/login"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/health",
+                                "/api/images/proxy"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(

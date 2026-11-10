@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Profile from "./pages/Profile";
@@ -12,12 +12,31 @@ import FootballWhoAmI from "./pages/FootballWhoAmI";
 
 function ProtectedRoute({ children }) {
   const user = localStorage.getItem("footballHubUser");
+  const token = localStorage.getItem("footballHubToken");
 
-  if (!user) {
+  if (!user || !token) {
     return <Navigate to="/login" replace />;
   }
 
   return children;
+}
+
+function AuthRedirectHandler() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    function handleExpiredSession() {
+      navigate("/login", { replace: true });
+    }
+
+    window.addEventListener("footballHub:authExpired", handleExpiredSession);
+
+    return () => {
+      window.removeEventListener("footballHub:authExpired", handleExpiredSession);
+    };
+  }, [navigate]);
+
+  return null;
 }
 
 function App() {
@@ -36,6 +55,8 @@ function App() {
 
   return (
     <BrowserRouter>
+      <AuthRedirectHandler />
+
       <div className="app-wrapper">
         <div className="app-content">
           <button
@@ -50,7 +71,6 @@ function App() {
 
           <Routes>
             <Route path="/login" element={<Login />} />
-
             <Route path="/signup" element={<SignUp />} />
 
             <Route

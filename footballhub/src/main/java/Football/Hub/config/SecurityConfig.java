@@ -29,7 +29,7 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource(
-            @Value("\${app.cors.allowed-origin-patterns:http://localhost:5173,http://127.0.0.1:5173,http://192.168.*.*:5173,http://10.*.*.*:5173,http://172.*.*.*:5173,http://*.local:5173,https://*.vercel.app}") String allowedOriginPatterns) {
+            @Value("${app.cors.allowed-origin-patterns:http://localhost:5173,http://127.0.0.1:5173,http://192.168.*.*:5173,http://10.*.*.*:5173,http://172.*.*.*:5173,http://*.local:5173,https://*.vercel.app}") String allowedOriginPatterns) {
 
         CorsConfiguration config = new CorsConfiguration();
 

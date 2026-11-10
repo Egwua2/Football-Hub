@@ -369,9 +369,11 @@ public class BattleRoomService {
 
     public BattleRoom setCategory(
             String roomCode,
-            String category) {
+            String category,
+            String playerName) {
 
         BattleRoom room = getRoom(roomCode);
+        requireHost(room, playerName);
 
         if (room.getStatus() != BattleRoomStatus.WAITING) {
             throw new IllegalStateException(
@@ -406,9 +408,12 @@ public class BattleRoomService {
         return battleRoomRepository.save(room);
     }
 
-    public BattleRoom setRandomCategory(String roomCode) {
+    public BattleRoom setRandomCategory(
+            String roomCode,
+            String playerName) {
 
         BattleRoom room = getRoom(roomCode);
+        requireHost(room, playerName);
 
         if (room.getStatus() != BattleRoomStatus.WAITING) {
             throw new IllegalStateException(
@@ -437,9 +442,12 @@ public class BattleRoomService {
         return battleRoomRepository.save(room);
     }
 
-    public BattleRoom startBattle(String roomCode) {
+    public BattleRoom startBattle(
+            String roomCode,
+            String playerName) {
 
         BattleRoom room = getRoom(roomCode);
+        requireHost(room, playerName);
 
         if (room.getStatus() != BattleRoomStatus.WAITING) {
             throw new IllegalStateException(
@@ -574,6 +582,21 @@ public class BattleRoomService {
         }
 
         return savedParticipant;
+    }
+
+    private void requireHost(
+            BattleRoom room,
+            String playerName) {
+
+        if (playerName == null ||
+                playerName.isBlank() ||
+                room.getHostName() == null ||
+                !room.getHostName().equalsIgnoreCase(playerName.trim())) {
+
+            throw new IllegalStateException(
+                    "Only the room host can perform this action."
+            );
+        }
     }
 
     private String generateRoomCode() {

@@ -675,6 +675,7 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
 
         setSquadId(savedSquad.id);
         localStorage.setItem("footballHub.lastSquadId", String(savedSquad.id));
+        sessionStorage.setItem("footballHub.squadBattle.session.squadId", String(savedSquad.id));
         setSquadName(savedSquad.name || "");
         setFormation(
           FORMATION_LAYOUTS[savedSquad.formation]
@@ -805,6 +806,7 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
 
       setSquadId(squad.id);
       localStorage.setItem("footballHub.lastSquadId", String(squad.id));
+      sessionStorage.setItem("footballHub.squadBattle.session.squadId", String(squad.id));
       setSavedSquadId(String(squad.id));
       setSquadPlayers({});
       setSelectedSlot(null);
@@ -816,6 +818,16 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function copySquadId() {
+    try {
+      await navigator.clipboard.writeText(String(squadId));
+      setError("");
+      setMessage("Squad ID copied. You can use it in Squad Battle.");
+    } catch {
+      setError("Could not copy automatically. Select and copy the Squad ID shown above.");
     }
   }
 
@@ -842,6 +854,7 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
       setSavedSquadId("");
 
       localStorage.removeItem("footballHub.lastSquadId");
+      sessionStorage.removeItem("footballHub.squadBattle.session.squadId");
       setMessage("Squad reset. You can create a new one now.");
     } catch (err) {
       setError(err.message || "Could not reset the squad. Please try again.");
@@ -1086,6 +1099,19 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
                     <strong>Squad Created</strong>
                     <small>{formation}</small>
                   </div>
+                </div>
+                <div className="squad-id-display">
+                  <div>
+                    <small>Squad ID</small>
+                    <strong>#{squadId}</strong>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={copySquadId}
+                    disabled={loading}
+                  >
+                    Copy ID
+                  </button>
                 </div>
                 <button
                   className="secondary-action"

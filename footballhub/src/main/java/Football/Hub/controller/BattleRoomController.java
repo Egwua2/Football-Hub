@@ -139,11 +139,13 @@ public class BattleRoomController {
 
         try {
             String category = request.get("category");
+            String playerName = request.get("playerName");
 
             BattleRoom room =
                     battleRoomService.setCategory(
                             roomCode,
-                            category
+                            category,
+                            playerName
                     );
 
             return ResponseEntity.ok(room);
@@ -158,11 +160,15 @@ public class BattleRoomController {
 
     @PostMapping("/{roomCode}/random-category")
     public ResponseEntity<?> setRandomCategory(
-            @PathVariable String roomCode) {
+            @PathVariable String roomCode,
+            @RequestBody Map<String, String> request) {
 
         try {
             BattleRoom room =
-                    battleRoomService.setRandomCategory(roomCode);
+                    battleRoomService.setRandomCategory(
+                            roomCode,
+                            request.get("playerName")
+                    );
 
             return ResponseEntity.ok(room);
 
@@ -176,11 +182,15 @@ public class BattleRoomController {
 
     @PostMapping("/{roomCode}/start")
     public ResponseEntity<?> startBattle(
-            @PathVariable String roomCode) {
+            @PathVariable String roomCode,
+            @RequestBody Map<String, String> request) {
 
         try {
             BattleRoom room =
-                    battleRoomService.startBattle(roomCode);
+                    battleRoomService.startBattle(
+                            roomCode,
+                            request.get("playerName")
+                    );
 
             return ResponseEntity.ok(room);
 

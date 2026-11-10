@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { usePersistentState } from "../hooks/usePersistentState";
+import { useSessionState } from "../hooks/useSessionState";
 import { Link } from "react-router-dom";
 import { battleApi } from "../services/api";
 import "./GamePages.css";
@@ -14,20 +14,20 @@ const emptyLobby = {
 };
 
 function SquadBattle() {
-  const [name, setName] = usePersistentState(
-    "footballHub.playerName",
+  const [name, setName] = useSessionState(
+    "footballHub.squadBattle.session.name",
+    () => localStorage.getItem("footballHub.playerName") || ""
+  );
+  const [roomCode, setRoomCode] = useSessionState(
+    "footballHub.squadBattle.session.roomCode",
     ""
   );
-  const [roomCode, setRoomCode] = usePersistentState(
-    "footballHub.squadBattle.roomCode",
-    ""
-  );
-  const [lobby, setLobby] = usePersistentState(
-    "footballHub.squadBattle.lobby",
+  const [lobby, setLobby] = useSessionState(
+    "footballHub.squadBattle.session.lobby",
     emptyLobby
   );
-  const [category, setCategory] = usePersistentState(
-    "footballHub.squadBattle.category",
+  const [category, setCategory] = useSessionState(
+    "footballHub.squadBattle.session.category",
     ""
   );
   // Remember which room this browser created so a refresh does not turn
@@ -38,21 +38,22 @@ function SquadBattle() {
   // Read the latest squad ID each time this page opens. This keeps a new
   // squad built during the battle from being replaced by an older saved ID.
   const [squadId, setSquadId] = useState(
-    localStorage.getItem("footballHub.lastSquadId") || ""
+    sessionStorage.getItem("footballHub.squadBattle.session.squadId") ||
+      localStorage.getItem("footballHub.lastSquadId") || ""
   );
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [voteOptions, setVoteOptions] = usePersistentState(
-    "footballHub.squadBattle.voteOptions",
+  const [voteOptions, setVoteOptions] = useSessionState(
+    "footballHub.squadBattle.session.voteOptions",
     []
   );
-  const [results, setResults] = usePersistentState(
-    "footballHub.squadBattle.results",
+  const [results, setResults] = useSessionState(
+    "footballHub.squadBattle.session.results",
     []
   );
-  const [hasVoted, setHasVoted] = usePersistentState(
-    "footballHub.squadBattle.hasVoted",
+  const [hasVoted, setHasVoted] = useSessionState(
+    "footballHub.squadBattle.session.hasVoted",
     false
   );
 
@@ -346,7 +347,8 @@ function SquadBattle() {
       const room =
         await battleApi.setCategory(
           roomCode,
-          category
+          category,
+          name.trim()
         );
 
       setLobby((current) => ({
@@ -374,7 +376,8 @@ function SquadBattle() {
     try {
       const room =
         await battleApi.randomCategory(
-          roomCode
+          roomCode,
+          name.trim()
         );
 
       setLobby((current) => ({
@@ -400,7 +403,7 @@ function SquadBattle() {
 
     try {
       const room =
-        await battleApi.start(roomCode);
+        await battleApi.start(roomCode, name.trim());
 
       setLobby((current) => ({
         ...current,
@@ -418,12 +421,18 @@ function SquadBattle() {
   }
 
   async function submitSquad() {
-    if (!squadId) {
+    const savedSquadId =
+      sessionStorage.getItem("footballHub.squadBattle.session.squadId") ||
+      localStorage.getItem("footballHub.lastSquadId") || "";
+    const selectedSquadId = squadId || savedSquadId;
+
+    if (!selectedSquadId) {
       return setError(
-        "Enter your squad ID. Create a squad in Squad Builder first."
+        "Create your XI in Squad Builder first. Its ID will be loaded here automatically."
       );
     }
 
+    setSquadId(String(selectedSquadId));
     setBusy(true);
     setError("");
 
@@ -431,7 +440,7 @@ function SquadBattle() {
       await battleApi.submit(
         roomCode,
         name.trim(),
-        squadId
+        selectedSquadId
       );
 
       setMessage(
@@ -969,9 +978,7 @@ function SquadBattle() {
                 </h3>
 
                 <p>
-                  Use Squad Builder, fill
-                  all 11 positions, then
-                  submit the squad ID here.
+                  Build your XI in Squad Builder. Your Squad ID will be loaded here automatically when you return.
                 </p>
 
                 <div className="inline-actions">

@@ -211,23 +211,25 @@ export const battleApi = {
   getCategories: () =>
     request("/battle/rooms/categories"),
 
-  setCategory: (roomCode, category) =>
+  setCategory: (roomCode, category, playerName) =>
     request(`/battle/rooms/${encodeURIComponent(roomCode)}/category`, {
       method: "POST",
-      body: JSON.stringify({ category }),
+      body: JSON.stringify({ category, playerName }),
     }),
 
-  randomCategory: (roomCode) =>
+  randomCategory: (roomCode, playerName) =>
     request(
       `/battle/rooms/${encodeURIComponent(roomCode)}/random-category`,
       {
         method: "POST",
+        body: JSON.stringify({ playerName }),
       }
     ),
 
-  start: (roomCode) =>
+  start: (roomCode, playerName) =>
     request(`/battle/rooms/${encodeURIComponent(roomCode)}/start`, {
       method: "POST",
+      body: JSON.stringify({ playerName }),
     }),
 
   submit: (roomCode, playerName, squadId) =>

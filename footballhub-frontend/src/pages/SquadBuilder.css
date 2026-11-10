@@ -1711,3 +1711,51 @@
   opacity: 0.6;
   cursor: wait;
 }
+.squad-id-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(92, 174, 255, 0.2);
+  border-radius: 11px;
+  background: rgba(92, 174, 255, 0.06);
+}
+
+.squad-id-display small,
+.squad-id-display strong {
+  display: block;
+}
+
+.squad-id-display small {
+  margin-bottom: 4px;
+  color: #93a2b6;
+  font-size: 0.72rem;
+}
+
+.squad-id-display strong {
+  color: #ffffff;
+  font-size: 0.95rem;
+}
+
+.squad-id-display button {
+  padding: 9px 13px;
+  border: 0;
+  border-radius: 8px;
+  background: #3187e8;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.squad-id-display button:hover:not(:disabled) {
+  background: #2678d4;
+}
+
+.squad-id-display button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}

@@ -40,8 +40,7 @@ function SquadBattle() {
   // Read the latest squad ID each time this page opens. This keeps a new
   // squad built during the battle from being replaced by an older saved ID.
   const [squadId, setSquadId] = useState(
-    sessionStorage.getItem("footballHub.squadBattle.session.squadId") ||
-      localStorage.getItem("footballHub.lastSquadId") || ""
+    localStorage.getItem("footballHub.lastSquadId") || ""
   );
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -442,18 +441,12 @@ function SquadBattle() {
   }
 
   async function submitSquad() {
-    const savedSquadId =
-      sessionStorage.getItem("footballHub.squadBattle.session.squadId") ||
-      localStorage.getItem("footballHub.lastSquadId") || "";
-    const selectedSquadId = squadId || savedSquadId;
-
-    if (!selectedSquadId) {
+    if (!squadId) {
       return setError(
-        "Create your XI in Squad Builder first. Its ID will be loaded here automatically."
+        "Enter your squad ID. Create a squad in Squad Builder first."
       );
     }
 
-    setSquadId(String(selectedSquadId));
     setBusy(true);
     setError("");
 
@@ -461,7 +454,7 @@ function SquadBattle() {
       await battleApi.submit(
         roomCode,
         name.trim(),
-        selectedSquadId
+        squadId
       );
 
       setMessage(
@@ -999,7 +992,9 @@ function SquadBattle() {
                 </h3>
 
                 <p>
-                  Build your XI in Squad Builder. Your Squad ID will be loaded here automatically when you return.
+                  Use Squad Builder, fill
+                  all 11 positions, then
+                  submit the squad ID here.
                 </p>
 
                 <div className="inline-actions">

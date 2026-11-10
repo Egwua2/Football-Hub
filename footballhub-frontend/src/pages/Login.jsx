@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../services/api";
 
@@ -14,6 +14,11 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Wake the sleeping backend as soon as the login page opens.
+  useEffect(() => {
+    fetch(\`\${API_BASE_URL}/battle/rooms/categories\`).catch(() => {});
+  }, []);
+
   function handleChange(e) {
     setForm({
       ...form,
@@ -22,68 +27,64 @@ function Login() {
   }
 
   async function handleSubmit(e) {
-  e.preventDefault();
-  setError("");
-  setLoading(true);
-
-  try {
-    const response = await fetch(
-      `${API_BASE_URL}/users/login`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          login: form.usernameOrEmail,
-          password: form.password,
-        }),
-      }
-    );
-
-    const text = await response.text();
-
-    let data;
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
     try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      data = text;
-    }
-
-    if (!response.ok) {
-      throw new Error(
-        typeof data === "string"
-          ? data
-          : data?.message || data?.error || "Login failed."
+      const response = await fetch(
+        \`\${API_BASE_URL}/users/login\`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            login: form.usernameOrEmail.trim(),
+            password: form.password,
+          }),
+        }
       );
+
+      const text = await response.text();
+      let data;
+
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        data = text;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          typeof data === "string"
+            ? data
+            : data?.message || data?.error || "Login failed."
+        );
+      }
+
+      if (!data?.token || !data?.user?.id) {
+        throw new Error("The server returned an unexpected login response.");
+      }
+
+      localStorage.setItem("footballHubToken", data.token);
+      localStorage.setItem("footballHubUser", JSON.stringify(data.user));
+
+      navigate("/");
+    } catch (err) {
+      setError(
+        err.message === "Failed to fetch"
+          ? "Cannot reach the backend. Check that the server is running."
+          : err.message
+      );
+    } finally {
+      setLoading(false);
     }
-
-    if (!data || typeof data !== "object" || !data.id) {
-      throw new Error("The server returned an unexpected login response.");
-    }
-
-    localStorage.setItem(
-      "footballHubUser",
-      JSON.stringify(data)
-    );
-
-    navigate("/");
-  } catch (err) {
-    setError(
-      err.message === "Failed to fetch"
-        ? "Cannot reach the backend. Check that the server is running."
-        : err.message
-    );
-  } finally {
-    setLoading(false);
   }
-}
 
   return (
     <div className="auth-page">
       <div className="auth-card">
-
         <div className="auth-logo">
           <span className="auth-logo-top">FH</span>
           <span className="auth-logo-bottom">FOOTY HUB</span>
@@ -124,7 +125,7 @@ function Login() {
           </div>
 
           <button type="submit" disabled={loading}>
-            {loading ? "Logging in..." : "Log In"}
+            {loading ? "Logging in... (server may be waking up)" : "Log In"}
           </button>
         </form>
 

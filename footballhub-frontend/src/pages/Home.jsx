@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { authApi } from "../services/api";
 
 function Home() {
   const navigate = useNavigate();
@@ -9,7 +10,14 @@ function Home() {
     localStorage.getItem("footballHubUser") || "null"
   );
 
-  function logout() {
+  async function logout() {
+    try {
+      await authApi.logout();
+    } catch {
+      // Clear the local session even if the server cannot be reached.
+    }
+
+    localStorage.removeItem("footballHubToken");
     localStorage.removeItem("footballHubUser");
     setProfileOpen(false);
     navigate("/login");

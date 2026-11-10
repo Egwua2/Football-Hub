@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { usePersistentState } from "../hooks/usePersistentState";
+import { useSessionState } from "../hooks/useSessionState";
 import { Link } from "react-router-dom";
 import { battleApi } from "../services/api";
 import "./GamePages.css";
@@ -14,20 +14,20 @@ const emptyLobby = {
 };
 
 function SquadBattle() {
-  const [name, setName] = usePersistentState(
-    "footballHub.playerName",
+  const [name, setName] = useSessionState(
+    "footballHub.squadBattle.session.name",
+    () => localStorage.getItem("footballHub.playerName") || ""
+  );
+  const [roomCode, setRoomCode] = useSessionState(
+    "footballHub.squadBattle.session.roomCode",
     ""
   );
-  const [roomCode, setRoomCode] = usePersistentState(
-    "footballHub.squadBattle.roomCode",
-    ""
-  );
-  const [lobby, setLobby] = usePersistentState(
-    "footballHub.squadBattle.lobby",
+  const [lobby, setLobby] = useSessionState(
+    "footballHub.squadBattle.session.lobby",
     emptyLobby
   );
-  const [category, setCategory] = usePersistentState(
-    "footballHub.squadBattle.category",
+  const [category, setCategory] = useSessionState(
+    "footballHub.squadBattle.session.category",
     ""
   );
   // Remember which room this browser created so a refresh does not turn
@@ -43,16 +43,16 @@ function SquadBattle() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [voteOptions, setVoteOptions] = usePersistentState(
-    "footballHub.squadBattle.voteOptions",
+  const [voteOptions, setVoteOptions] = useSessionState(
+    "footballHub.squadBattle.session.voteOptions",
     []
   );
-  const [results, setResults] = usePersistentState(
-    "footballHub.squadBattle.results",
+  const [results, setResults] = useSessionState(
+    "footballHub.squadBattle.session.results",
     []
   );
-  const [hasVoted, setHasVoted] = usePersistentState(
-    "footballHub.squadBattle.hasVoted",
+  const [hasVoted, setHasVoted] = useSessionState(
+    "footballHub.squadBattle.session.hasVoted",
     false
   );
 
@@ -346,7 +346,8 @@ function SquadBattle() {
       const room =
         await battleApi.setCategory(
           roomCode,
-          category
+          category,
+          name.trim()
         );
 
       setLobby((current) => ({
@@ -374,7 +375,8 @@ function SquadBattle() {
     try {
       const room =
         await battleApi.randomCategory(
-          roomCode
+          roomCode,
+          name.trim()
         );
 
       setLobby((current) => ({
@@ -400,7 +402,7 @@ function SquadBattle() {
 
     try {
       const room =
-        await battleApi.start(roomCode);
+        await battleApi.start(roomCode, name.trim());
 
       setLobby((current) => ({
         ...current,

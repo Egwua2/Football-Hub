@@ -115,11 +115,12 @@ function SignUp() {
         );
       }
 
-      if (!data || typeof data !== "object" || !data.id) {
+      if (!data?.token || !data?.user?.id) {
         throw new Error("The server returned an unexpected signup response.");
       }
 
-      localStorage.setItem("footballHubUser", JSON.stringify(data));
+      localStorage.setItem("footballHubToken", data.token);
+      localStorage.setItem("footballHubUser", JSON.stringify(data.user));
       navigate("/");
     } catch (err) {
       setError(

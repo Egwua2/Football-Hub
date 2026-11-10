@@ -29,14 +29,23 @@ async function request(url, options = {}) {
     );
   }
 
+  const token = localStorage.getItem("footballHubToken");
+
   const response = await fetch(`${API_BASE_URL}${url}`, {
     ...options,
     cache: options.cache || "no-store",
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
   });
+
+  if (response.status === 401 && token) {
+    localStorage.removeItem("footballHubToken");
+    localStorage.removeItem("footballHubUser");
+    window.dispatchEvent(new Event("footballHub:authExpired"));
+  }
 
   if (!response.ok) {
     let message = "Something went wrong.";
@@ -55,6 +64,10 @@ async function request(url, options = {}) {
 
   return response.json();
 }
+
+export const authApi = {
+  logout: () => request("/users/logout", { method: "POST" }),
+};
 
 function normalizePhoto(url) {
   if (!url || typeof url !== "string") {

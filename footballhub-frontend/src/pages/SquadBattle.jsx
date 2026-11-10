@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSessionState } from "../hooks/useSessionState";
 import { Link } from "react-router-dom";
 import { battleApi } from "../services/api";
@@ -14,6 +14,8 @@ const emptyLobby = {
 };
 
 function SquadBattle() {
+  const roomRefreshSequence = useRef(0);
+
   const [name, setName] = useSessionState(
     "footballHub.squadBattle.session.name",
     () => localStorage.getItem("footballHub.playerName") || ""
@@ -92,20 +94,25 @@ function SquadBattle() {
   async function loadRoom(code = roomCode) {
     if (!code) return;
 
+    const requestId = ++roomRefreshSequence.current;
+
     try {
-      const room = await battleApi.getRoom(code);
-      let fetchedPlayers = [];
+      const [room, playersResponse] = await Promise.all([
+        battleApi.getRoom(code),
+        battleApi.getPlayers(code).catch((playersError) => {
+          console.error("Could not refresh Squad Battle players:", playersError);
+          return [];
+        }),
+      ]);
 
-      try {
-        const response = await battleApi.getPlayers(code);
-        fetchedPlayers = Array.isArray(response) ? response : [];
-      } catch (playersError) {
-        console.error("Could not refresh Squad Battle players:", playersError);
-      }
+      // Ignore an older response if a newer refresh has already started.
+      // This stops a slow request from replacing a more recent player list.
+      if (requestId !== roomRefreshSequence.current) return;
 
-      // Use whichever response contains the most complete participant list.
-      // The room response also includes its participants, so this avoids
-      // leaving the lobby stuck with only the host if /players is stale.
+      const fetchedPlayers = Array.isArray(playersResponse)
+        ? playersResponse
+        : [];
+
       const roomPlayers = Array.isArray(room?.participants)
         ? room.participants
         : [];
@@ -126,7 +133,9 @@ function SquadBattle() {
         setCategory(room.category);
       }
     } catch (err) {
-      setError(err.message);
+      if (requestId === roomRefreshSequence.current) {
+        setError(err.message);
+      }
     }
   }
 
@@ -139,14 +148,26 @@ function SquadBattle() {
   useEffect(() => {
     if (!roomCode) return undefined;
 
-    loadRoom(roomCode);
+    let active = true;
+    let timer;
 
-    const timer = setInterval(
-      () => loadRoom(roomCode),
-      2000
-    );
+    const refreshRoom = async () => {
+      await loadRoom(roomCode);
 
-    return () => clearInterval(timer);
+      // Wait until the current refresh finishes before starting another one.
+      // This prevents overlapping polls from showing an older lobby snapshot.
+      if (active) {
+        timer = setTimeout(refreshRoom, 2000);
+      }
+    };
+
+    refreshRoom();
+
+    return () => {
+      active = false;
+      roomRefreshSequence.current += 1;
+      clearTimeout(timer);
+    };
   }, [roomCode]);
 
   async function loadCategories() {

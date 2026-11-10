@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_BASE_URL } from "../services/api";
+import { API_BASE_URL, authApi } from "../services/api";
 
 const POSITIONS = [
   "GK", "CB", "LB", "RB", "LWB", "RWB",
@@ -40,7 +40,11 @@ function Profile() {
       return;
     }
 
-    fetch(`${API_BASE_URL}/users/${user.id}`)
+    fetch(`${API_BASE_URL}/users/${user.id}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("footballHubToken") || ""}`,
+      },
+    })
       .then((response) => {
         if (!response.ok) {
           throw new Error("Could not load profile.");
@@ -55,7 +59,14 @@ function Profile() {
       .catch(() => {});
   }, []);
 
-  function logout() {
+  async function logout() {
+    try {
+      await authApi.logout();
+    } catch {
+      // Clear the local session even if the server cannot be reached.
+    }
+
+    localStorage.removeItem("footballHubToken");
     localStorage.removeItem("footballHubUser");
     navigate("/login");
   }
@@ -96,6 +107,7 @@ function Profile() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("footballHubToken") || ""}`,
         },
         body: JSON.stringify({
           age,

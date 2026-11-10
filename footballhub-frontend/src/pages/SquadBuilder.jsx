@@ -675,7 +675,6 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
 
         setSquadId(savedSquad.id);
         localStorage.setItem("footballHub.lastSquadId", String(savedSquad.id));
-        sessionStorage.setItem("footballHub.squadBattle.session.squadId", String(savedSquad.id));
         setSquadName(savedSquad.name || "");
         setFormation(
           FORMATION_LAYOUTS[savedSquad.formation]
@@ -806,7 +805,6 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
 
       setSquadId(squad.id);
       localStorage.setItem("footballHub.lastSquadId", String(squad.id));
-      sessionStorage.setItem("footballHub.squadBattle.session.squadId", String(squad.id));
       setSavedSquadId(String(squad.id));
       setSquadPlayers({});
       setSelectedSlot(null);
@@ -854,7 +852,6 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
       setSavedSquadId("");
 
       localStorage.removeItem("footballHub.lastSquadId");
-      sessionStorage.removeItem("footballHub.squadBattle.session.squadId");
       setMessage("Squad reset. You can create a new one now.");
     } catch (err) {
       setError(err.message || "Could not reset the squad. Please try again.");

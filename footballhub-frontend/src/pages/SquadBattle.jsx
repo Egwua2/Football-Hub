@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSessionState } from "../hooks/useSessionState";
+import { usePersistentState } from "../hooks/usePersistentState";
 import { Link } from "react-router-dom";
 import { battleApi } from "../services/api";
 import "./GamePages.css";
@@ -14,20 +14,20 @@ const emptyLobby = {
 };
 
 function SquadBattle() {
-  const [name, setName] = useSessionState(
-    "footballHub.squadBattle.session.name",
-    () => localStorage.getItem("footballHub.playerName") || ""
-  );
-  const [roomCode, setRoomCode] = useSessionState(
-    "footballHub.squadBattle.session.roomCode",
+  const [name, setName] = usePersistentState(
+    "footballHub.playerName",
     ""
   );
-  const [lobby, setLobby] = useSessionState(
-    "footballHub.squadBattle.session.lobby",
+  const [roomCode, setRoomCode] = usePersistentState(
+    "footballHub.squadBattle.roomCode",
+    ""
+  );
+  const [lobby, setLobby] = usePersistentState(
+    "footballHub.squadBattle.lobby",
     emptyLobby
   );
-  const [category, setCategory] = useSessionState(
-    "footballHub.squadBattle.session.category",
+  const [category, setCategory] = usePersistentState(
+    "footballHub.squadBattle.category",
     ""
   );
   // Remember which room this browser created so a refresh does not turn
@@ -38,22 +38,24 @@ function SquadBattle() {
   // Read the latest squad ID each time this page opens. This keeps a new
   // squad built during the battle from being replaced by an older saved ID.
   const [squadId, setSquadId] = useState(
-    sessionStorage.getItem("footballHub.squadBattle.session.squadId") ||
-      localStorage.getItem("footballHub.lastSquadId") || ""
+    localStorage.getItem("footballHub.lastSquadId") || ""
   );
+  // Text typed in the "Join" box. Kept separate from the ACTIVE room code so
+  // typing never opens a room before the player has actually joined it.
+  const [joinCode, setJoinCode] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [voteOptions, setVoteOptions] = useSessionState(
-    "footballHub.squadBattle.session.voteOptions",
+  const [voteOptions, setVoteOptions] = usePersistentState(
+    "footballHub.squadBattle.voteOptions",
     []
   );
-  const [results, setResults] = useSessionState(
-    "footballHub.squadBattle.session.results",
+  const [results, setResults] = usePersistentState(
+    "footballHub.squadBattle.results",
     []
   );
-  const [hasVoted, setHasVoted] = useSessionState(
-    "footballHub.squadBattle.session.hasVoted",
+  const [hasVoted, setHasVoted] = usePersistentState(
+    "footballHub.squadBattle.hasVoted",
     false
   );
 
@@ -240,7 +242,7 @@ function SquadBattle() {
   }
 
   async function joinRoom() {
-    if (!name.trim() || !roomCode.trim()) {
+    if (!name.trim() || !joinCode.trim()) {
       return setError(
         "Enter your name and room code."
       );
@@ -250,7 +252,7 @@ function SquadBattle() {
     setError("");
 
     try {
-      const code = roomCode
+      const code = joinCode
         .trim()
         .toUpperCase();
 
@@ -269,6 +271,7 @@ function SquadBattle() {
       setHostRoomCode("");
 
       setRoomCode(code);
+      setJoinCode("");
       setCategory("");
       setHasVoted(false);
       setVoteOptions([]);
@@ -347,8 +350,7 @@ function SquadBattle() {
       const room =
         await battleApi.setCategory(
           roomCode,
-          category,
-          name.trim()
+          category
         );
 
       setLobby((current) => ({
@@ -376,8 +378,7 @@ function SquadBattle() {
     try {
       const room =
         await battleApi.randomCategory(
-          roomCode,
-          name.trim()
+          roomCode
         );
 
       setLobby((current) => ({
@@ -403,7 +404,7 @@ function SquadBattle() {
 
     try {
       const room =
-        await battleApi.start(roomCode, name.trim());
+        await battleApi.start(roomCode);
 
       setLobby((current) => ({
         ...current,
@@ -421,18 +422,12 @@ function SquadBattle() {
   }
 
   async function submitSquad() {
-    const savedSquadId =
-      sessionStorage.getItem("footballHub.squadBattle.session.squadId") ||
-      localStorage.getItem("footballHub.lastSquadId") || "";
-    const selectedSquadId = squadId || savedSquadId;
-
-    if (!selectedSquadId) {
+    if (!squadId) {
       return setError(
-        "Create your XI in Squad Builder first. Its ID will be loaded here automatically."
+        "Enter your squad ID. Create a squad in Squad Builder first."
       );
     }
 
-    setSquadId(String(selectedSquadId));
     setBusy(true);
     setError("");
 
@@ -440,7 +435,7 @@ function SquadBattle() {
       await battleApi.submit(
         roomCode,
         name.trim(),
-        selectedSquadId
+        squadId
       );
 
       setMessage(
@@ -600,9 +595,9 @@ function SquadBattle() {
             />
 
             <input
-              value={roomCode}
+              value={joinCode}
               onChange={(e) =>
-                setRoomCode(
+                setJoinCode(
                   e.target.value.toUpperCase()
                 )
               }
@@ -978,7 +973,9 @@ function SquadBattle() {
                 </h3>
 
                 <p>
-                  Build your XI in Squad Builder. Your Squad ID will be loaded here automatically when you return.
+                  Use Squad Builder, fill
+                  all 11 positions, then
+                  submit the squad ID here.
                 </p>
 
                 <div className="inline-actions">

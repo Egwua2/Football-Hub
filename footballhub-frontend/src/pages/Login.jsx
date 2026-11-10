@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../services/api";
 
@@ -13,6 +13,11 @@ function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Wake the sleeping backend as soon as the login page opens.
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/battle/rooms/categories`).catch(() => {});
+  }, []);
 
   function handleChange(e) {
     setForm({
@@ -124,7 +129,7 @@ function Login() {
           </div>
 
           <button type="submit" disabled={loading}>
-            {loading ? "Logging in..." : "Log In"}
+            {loading ? "Logging in... (server may be waking up)" : "Log In"}
           </button>
         </form>
 

@@ -25,4 +25,6 @@ public interface BattlePositionVoteRepository
     long countByRoomId(Long roomId);
 
     void deleteByRoomId(Long roomId);
+
+    void deleteByRoomIdAndVoterId(Long roomId, Long voterId);
 }

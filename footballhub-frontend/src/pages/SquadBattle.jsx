@@ -1093,7 +1093,9 @@ function SquadBattle() {
 
                 <Link
                   className="text-link"
-                  to="/squad-builder"
+                  to={`/squad-builder?formation=${encodeURIComponent(
+                    lobby.room.formation || ""
+                  )}&battleRoom=${encodeURIComponent(roomCode)}`}
                 >
                   Open Squad Builder →
                 </Link>

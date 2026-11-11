@@ -453,8 +453,10 @@ public class BattleVotingService {
                 );
             }
 
-            if (!participant.getSquad().getFormation().equalsIgnoreCase(
-                    participants.get(0).getSquad().getFormation())) {
+            if (participant.getSquad().getFormation() == null ||
+                    participants.get(0).getSquad().getFormation() == null ||
+                    !participant.getSquad().getFormation().equalsIgnoreCase(
+                            participants.get(0).getSquad().getFormation())) {
                 throw new IllegalStateException(
                         "All participants must use the same formation."
                 );

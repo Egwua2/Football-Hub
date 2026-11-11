@@ -171,11 +171,19 @@ public class BattleRoomService {
                         new IllegalArgumentException("Room not found."));
     }
 
+    private BattleRoom getRoomForUpdate(String roomCode) {
+
+        return battleRoomRepository.findByRoomCodeForUpdate(roomCode)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Room not found."));
+    }
+
+    @Transactional
     public BattleParticipant joinRoom(
             String roomCode,
             String playerName) {
 
-        BattleRoom room = getRoom(roomCode);
+        BattleRoom room = getRoomForUpdate(roomCode);
 
         if (room.getStatus() != BattleRoomStatus.WAITING) {
             throw new IllegalStateException(
@@ -233,7 +241,7 @@ public class BattleRoomService {
             throw new IllegalArgumentException("Player name is required.");
         }
 
-        BattleRoom room = getRoom(roomCode);
+        BattleRoom room = getRoomForUpdate(roomCode);
 
         BattleParticipant leavingPlayer =
                 battleParticipantRepository
@@ -446,12 +454,13 @@ public class BattleRoomService {
         return battleRoomRepository.save(room);
     }
 
+    @Transactional
     public BattleRoom startBattle(
             String roomCode,
             String playerName,
             String formation) {
 
-        BattleRoom room = getRoom(roomCode);
+        BattleRoom room = getRoomForUpdate(roomCode);
         requireHost(room, playerName);
 
         if (room.getStatus() != BattleRoomStatus.WAITING) {
@@ -507,12 +516,13 @@ public class BattleRoomService {
         return battleRoomRepository.save(room);
     }
 
+    @Transactional
     public BattleParticipant submitSquad(
             String roomCode,
             String playerName,
             Long squadId) {
 
-        BattleRoom room = getRoom(roomCode);
+        BattleRoom room = getRoomForUpdate(roomCode);
 
         if (room.getStatus() != BattleRoomStatus.BUILDING) {
             throw new IllegalStateException(

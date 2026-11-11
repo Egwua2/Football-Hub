@@ -24,6 +24,9 @@ function SquadBattle() {
     "footballHub.squadBattle.session.roomCode",
     ""
   );
+  // Keep the room-code input separate from the room the player has joined.
+  // Typing a valid code must not start room polling before Join Room is clicked.
+  const [joinCode, setJoinCode] = useState("");
   const [lobby, setLobby] = useSessionState(
     "footballHub.squadBattle.session.lobby",
     emptyLobby
@@ -260,7 +263,7 @@ function SquadBattle() {
   }
 
   async function joinRoom() {
-    if (!name.trim() || !roomCode.trim()) {
+    if (!name.trim() || !joinCode.trim()) {
       return setError(
         "Enter your name and room code."
       );
@@ -270,7 +273,7 @@ function SquadBattle() {
     setError("");
 
     try {
-      const code = roomCode
+      const code = joinCode
         .trim()
         .toUpperCase();
 
@@ -289,6 +292,7 @@ function SquadBattle() {
       setHostRoomCode("");
 
       setRoomCode(code);
+      setJoinCode("");
       setCategory("");
       setHasVoted(false);
       setVoteOptions([]);
@@ -614,9 +618,9 @@ function SquadBattle() {
             />
 
             <input
-              value={roomCode}
+              value={joinCode}
               onChange={(e) =>
-                setRoomCode(
+                setJoinCode(
                   e.target.value.toUpperCase()
                 )
               }

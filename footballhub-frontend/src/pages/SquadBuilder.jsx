@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import html2canvas from "html2canvas";
 import { getPlayerImageUrl, playerApi, squadApi } from "../services/api";
 import { usePersistentState } from "../hooks/usePersistentState";
@@ -617,7 +618,17 @@ const DAILY_MESSAGES = [
 ];
 
 function SquadBuilder() {
-  const [formation, setFormation] = usePersistentState("squadBuilder.formation", "4-3-3");
+  const routeParams = new URLSearchParams(window.location.search);
+  const requestedBattleFormation = routeParams.get("formation") || "";
+  const battleRoomCode = routeParams.get("battleRoom") || "";
+  const battleMode = Boolean(
+    battleRoomCode && FORMATION_LAYOUTS[requestedBattleFormation]
+  );
+
+  const [formation, setFormation] = usePersistentState(
+    "squadBuilder.formation",
+    battleMode ? requestedBattleFormation : "4-3-3"
+  );
   const [squadName, setSquadName] = usePersistentState("squadBuilder.name", "");
   const [manager, setManager] = usePersistentState("squadBuilder.manager", null);
   const [savedSquadId, setSavedSquadId] = usePersistentState(
@@ -650,6 +661,14 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
 
   const playerCount = Object.keys(squadPlayers).length;
 
+  // Squad Battle locks every participant to the host's chosen formation.
+  useEffect(() => {
+    if (!battleMode) return;
+    setFormation(requestedBattleFormation);
+    setSquadPlayers({});
+    setSelectedSlot(null);
+  }, [battleMode, requestedBattleFormation, setFormation, setSquadPlayers]);
+
   useEffect(() => {
     if (!savedSquadId || squadId) return undefined;
 
@@ -661,6 +680,22 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
 
         if (!savedSquad?.id) {
           throw new Error("Saved squad was not found.");
+        }
+
+        const savedFormation = FORMATION_LAYOUTS[savedSquad.formation]
+          ? savedSquad.formation
+          : "4-3-3";
+
+        // Keep an existing squad intact when its formation does not match this battle.
+        // The player can create a separate squad below using the required formation.
+        if (battleMode && savedFormation !== requestedBattleFormation) {
+          setFormation(requestedBattleFormation);
+          setSquadPlayers({});
+          setSelectedSlot(null);
+          setMessage(
+            `Your saved squad uses ${savedFormation}. This battle requires ${requestedBattleFormation}. Create a new squad below; your saved squad has not been deleted.`
+          );
+          return;
         }
 
         const savedPlayers = await squadApi.getPlayers(savedSquad.id);
@@ -705,7 +740,19 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
     return () => {
       cancelled = true;
     };
-  }, [savedSquadId, squadId, setFormation, setManager, setSquadName, setSavedSquadId]);
+  }, [
+    savedSquadId,
+    squadId,
+    battleMode,
+    requestedBattleFormation,
+    setFormation,
+    setManager,
+    setSquadName,
+    setSavedSquadId,
+    setSquadPlayers,
+    setSelectedSlot,
+    setMessage,
+  ]);
 
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
@@ -844,7 +891,7 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
       setSelectedSlot(null);
       setSquadName("");
       setManager(null);
-      setFormation("4-3-3");
+      setFormation(battleMode ? requestedBattleFormation : "4-3-3");
       setSearchText("");
       setPlayers([]);
       setManagerSearch("");
@@ -968,7 +1015,7 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
   }
 
   function handleFormationChange(event) {
-    if (squadId) return;
+    if (squadId || battleMode) return;
 
     setFormation(event.target.value);
     setSquadPlayers({});
@@ -1034,6 +1081,17 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
         </div>
       </section>
 
+      {battleMode && (
+        <div className="builder-battle-note">
+          <strong>Squad Battle · Room {battleRoomCode}</strong>
+          <p>
+            This battle uses the host's {requestedBattleFormation} formation.
+            Build your XI, then return to Squad Battle and submit your Squad ID.
+          </p>
+          <Link to="/squad-battle">Return to Squad Battle</Link>
+        </div>
+      )}
+
       {showDailyMessage && (
         <div className="daily-squad-message">
           <div>
@@ -1069,7 +1127,7 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
             <select
               value={formation}
               onChange={handleFormationChange}
-              disabled={Boolean(squadId)}
+              disabled={Boolean(squadId) || battleMode}
             >
               {FORMATIONS.map((item) => (
                 <option key={item} value={item}>

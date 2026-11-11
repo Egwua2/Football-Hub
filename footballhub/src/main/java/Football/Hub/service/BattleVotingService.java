@@ -315,39 +315,12 @@ public class BattleVotingService {
                         distinctPlayers.keySet().iterator().next()
                 );
             } else {
-                int bestVotes = -1;
-                int bestEligibleVoters = 1;
+                int highestVotes = voteCounts.values().stream()
+                        .max(Integer::compareTo)
+                        .orElse(0);
 
                 for (Long candidateId : distinctPlayers.keySet()) {
-                    int candidateVotes =
-                            voteCounts.getOrDefault(candidateId, 0);
-
-                    int eligibleVoters = (int) participants.stream()
-                            .filter(participant -> {
-                                Player ownPlayer = getPlayerAtSlot(
-                                        participant.getSquad(),
-                                        slot
-                                );
-                                return ownPlayer == null ||
-                                        !ownPlayer.getId().equals(candidateId);
-                            })
-                            .count();
-
-                    if (eligibleVoters == 0) {
-                        continue;
-                    }
-
-                    long candidateShare =
-                            (long) candidateVotes * bestEligibleVoters;
-                    long bestShare =
-                            (long) bestVotes * eligibleVoters;
-
-                    if (bestVotes < 0 || candidateShare > bestShare) {
-                        bestVotes = candidateVotes;
-                        bestEligibleVoters = eligibleVoters;
-                        winningPlayerIds.clear();
-                        winningPlayerIds.add(candidateId);
-                    } else if (candidateShare == bestShare) {
+                    if (voteCounts.getOrDefault(candidateId, 0) == highestVotes) {
                         winningPlayerIds.add(candidateId);
                     }
                 }

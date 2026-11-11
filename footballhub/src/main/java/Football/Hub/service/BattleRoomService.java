@@ -556,6 +556,7 @@ public class BattleRoomService {
         }
 
         if (room.getFormation() == null ||
+                squad.getFormation() == null ||
                 !room.getFormation().equalsIgnoreCase(squad.getFormation())) {
             throw new IllegalArgumentException(
                     "Your squad must use the room formation: " + room.getFormation()

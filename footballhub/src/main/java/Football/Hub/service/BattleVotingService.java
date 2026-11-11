@@ -311,14 +311,41 @@ public class BattleVotingService {
                 winningPlayerIds.add(
                         distinctPlayers.keySet().iterator().next()
                 );
-            } else if (!voteCounts.isEmpty()) {
-                int highestVotes = voteCounts.values().stream()
-                        .max(Integer::compareTo)
-                        .orElse(0);
+            } else {
+                int bestVotes = -1;
+                int bestEligibleVoters = 1;
 
-                for (Map.Entry<Long, Integer> entry : voteCounts.entrySet()) {
-                    if (entry.getValue() == highestVotes) {
-                        winningPlayerIds.add(entry.getKey());
+                for (Long candidateId : distinctPlayers.keySet()) {
+                    int candidateVotes =
+                            voteCounts.getOrDefault(candidateId, 0);
+
+                    int eligibleVoters = (int) participants.stream()
+                            .filter(participant -> {
+                                Player ownPlayer = getPlayerAtSlot(
+                                        participant.getSquad(),
+                                        slot
+                                );
+                                return ownPlayer == null ||
+                                        !ownPlayer.getId().equals(candidateId);
+                            })
+                            .count();
+
+                    if (eligibleVoters == 0) {
+                        continue;
+                    }
+
+                    long candidateShare =
+                            (long) candidateVotes * bestEligibleVoters;
+                    long bestShare =
+                            (long) bestVotes * eligibleVoters;
+
+                    if (bestVotes < 0 || candidateShare > bestShare) {
+                        bestVotes = candidateVotes;
+                        bestEligibleVoters = eligibleVoters;
+                        winningPlayerIds.clear();
+                        winningPlayerIds.add(candidateId);
+                    } else if (candidateShare == bestShare) {
+                        winningPlayerIds.add(candidateId);
                     }
                 }
             }

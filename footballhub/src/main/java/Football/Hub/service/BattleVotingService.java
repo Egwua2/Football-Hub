@@ -39,7 +39,7 @@ public class BattleVotingService {
             "LM", "RM",
             "CAM", "CAM_A", "CAM_B", "CAM_C",
             "LW", "RW",
-            "ST", "ST_A", "ST_B"
+            "ST", "ST_A", "ST_B", "CF"
     );
 
     private final BattleRoomRepository battleRoomRepository;
@@ -542,6 +542,7 @@ public class BattleVotingService {
             case "LW" -> "Left Winger";
             case "RW" -> "Right Winger";
             case "ST" -> "Striker";
+            case "CF" -> "Centre Forward";
             default -> base;
         };
 

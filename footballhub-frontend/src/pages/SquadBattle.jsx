@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSessionState } from "../hooks/useSessionState";
 import { Link } from "react-router-dom";
-import { battleApi } from "../services/api";
+import { battleApi, getPlayerImageUrl } from "../services/api";
 import "./GamePages.css";
 
 const DEFAULT_BATTLE_CATEGORIES = ["Best Premier League XI", "Best LaLiga XI", "Best Serie A XI", "Best Bundesliga XI", "Best Ligue 1 XI", "Best Barcelona XI", "Best Real Madrid XI", "Best Manchester United XI", "Best Manchester City XI", "Best Liverpool XI", "Best Arsenal XI", "Best Chelsea XI", "Best Bayern Munich XI", "Best AC Milan XI", "Best Inter Milan XI", "Best Juventus XI", "Best PSG XI", "Best Ajax XI", "Best African XI", "Best Nigerian XI", "Best Brazilian XI", "Best Argentine XI", "Best French XI", "Best English XI", "Best Spanish XI", "Best German XI", "Best Italian XI", "Best Portuguese XI", "Best Dutch XI", "Best South American XI", "Best European XI", "Best Under-23 XI", "Best Under-21 XI", "Best Under-20 XI", "Best Young Players XI", "Best Veterans XI", "Best Players Over 30 XI", "Best Champions League XI", "Best World Cup XI", "Best European Championship XI", "Best Copa America XI", "Best AFCON XI", "Best Club World Cup XI", "Best Europa League XI", "Best All-Time XI", "Best 21st Century XI", "Best 20th Century XI", "Best 2010s XI", "Best 2020s XI", "Best Current XI", "Best Legends XI", "Best Prime XI", "Best Ballon d'Or Winners XI", "Best Champions League Winners XI", "Best World Cup Winners XI", "Best Players Without a World Cup XI", "Best Players Without a Ballon d'Or XI", "Best One-Club XI", "Best Players From One Country XI", "Best Players From Different Countries XI", "Best Players From Different Leagues XI", "Best Academy Graduates XI", "Best Wonderkid XI", "Best Underrated XI", "Best Cult Heroes XI", "Best Rivalry XI", "Best XI Never to Win the Champions League", "Best XI Never to Win the World Cup", "Best XI Never to Win the Ballon d'Or", "Best XI With Players From One Generation", "Best XI With No Ballon d'Or Winners", "Best XI With No Champions League Winners", "Best XI With No World Cup Winners", "Best Underrated Premier League XI", "Best Complete Players XI", "Best Intelligent Players XI", "Best Leaders XI", "Best Playmakers XI", "Best Box-to-Box XI", "Best Goal-Scoring XI", "Best XI From 2000–2010", "Best XI From 2010–2020", "Best XI From 2015–2025", "Best XI From 2020–Present", "Best Forgotten Legends XI", "Best One-Season Wonders XI"];
+
+const BATTLE_FORMATIONS = [
+  "4-3-3", "4-4-2", "4-2-3-1", "4-1-4-1", "4-3-2-1",
+  "4-2-2-2", "4-4-1-1", "4-3-1-2", "4-1-2-3", "4-5-1",
+  "3-5-2", "3-4-3", "3-4-1-2", "3-4-2-1", "3-3-3-1",
+  "3-1-4-2", "3-2-4-1", "5-3-2", "5-4-1", "5-2-3",
+  "5-3-1-1", "5-2-1-2", "4-2-1-3", "4-3-3 DM", "4-3-3 False 9",
+];
 
 const emptyLobby = {
   roomCode: "",
@@ -32,6 +40,10 @@ function SquadBattle() {
     "footballHub.squadBattle.session.category",
     ""
   );
+  const [formation, setFormation] = useSessionState(
+    "footballHub.squadBattle.session.formation",
+    ""
+  );
   // Remember which room this browser created so a refresh does not turn
   // the host into a normal participant while the room data is reloading.
   const [hostRoomCode, setHostRoomCode] = useState(
@@ -53,11 +65,6 @@ function SquadBattle() {
     "footballHub.squadBattle.session.results",
     []
   );
-  const [hasVoted, setHasVoted] = useSessionState(
-    "footballHub.squadBattle.session.hasVoted",
-    false
-  );
-
   const isHost = useMemo(() => {
     const currentName = name.trim().toLowerCase();
     const currentRoomCode = String(
@@ -130,6 +137,10 @@ function SquadBattle() {
 
       if (room.category) {
         setCategory(room.category);
+      }
+
+      if (room.formation) {
+        setFormation(room.formation);
       }
     } catch (err) {
       if (requestId === roomRefreshSequence.current) {
@@ -237,7 +248,7 @@ function SquadBattle() {
 
       setRoomCode(room.roomCode);
       setCategory("");
-      setHasVoted(false);
+      setFormation("");
       setVoteOptions([]);
       setResults([]);
 
@@ -290,7 +301,7 @@ function SquadBattle() {
 
       setRoomCode(code);
       setCategory("");
-      setHasVoted(false);
+      setFormation("");
       setVoteOptions([]);
       setResults([]);
 
@@ -334,9 +345,9 @@ function SquadBattle() {
     setRoomCode("");
     setLobby(emptyLobby);
     setCategory("");
+    setFormation("");
     setVoteOptions([]);
     setResults([]);
-    setHasVoted(false);
     setHostRoomCode("");
     sessionStorage.removeItem("footballHub.squadBattle.hostRoomCode");
     localStorage.removeItem("footballHub.squadBattle.hostRoomCode");
@@ -418,12 +429,20 @@ function SquadBattle() {
   }
 
   async function startBattle() {
+    if (lobby.players.length < 3) {
+      return setError("At least 3 players are needed to start.");
+    }
+
+    if (!formation) {
+      return setError("Choose a formation first.");
+    }
+
     setBusy(true);
     setError("");
 
     try {
       const room =
-        await battleApi.start(roomCode, name.trim());
+        await battleApi.start(roomCode, name.trim(), formation);
 
       setLobby((current) => ({
         ...current,
@@ -508,7 +527,7 @@ function SquadBattle() {
     roomCode,
   ]);
 
-  async function vote(participantId) {
+  async function vote(positionSlot, playerId) {
     setBusy(true);
     setError("");
 
@@ -516,11 +535,12 @@ function SquadBattle() {
       await battleApi.vote(
         roomCode,
         name.trim(),
-        participantId
+        positionSlot,
+        playerId
       );
 
-      setHasVoted(true);
-      setMessage("Vote submitted.");
+      await loadVoting();
+      setMessage("Vote saved. Move on to the next position.");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -530,6 +550,14 @@ function SquadBattle() {
 
   const status =
     lobby.room?.status || "WAITING";
+
+  const completedPositions = voteOptions.filter(
+    (item) => item.voted || item.automatic
+  ).length;
+
+  const currentPosition = voteOptions.find(
+    (item) => !item.voted && !item.automatic
+  );
 
   return (
     <main className="game-page">
@@ -656,6 +684,11 @@ function SquadBattle() {
                   {lobby.room.category ||
                     "Choose your challenge"}
                 </h2>
+                {lobby.room.formation && (
+                  <p className="notice">
+                    Formation: {lobby.room.formation}
+                  </p>
+                )}
               </div>
 
               <div className="room-header-actions">
@@ -931,6 +964,31 @@ function SquadBattle() {
                     </select>
                   </div>
 
+                  <div className="battle-category-select">
+                    <label>
+                      Choose Battle Formation
+                    </label>
+
+                    <select
+                      value={formation}
+                      onChange={(e) => setFormation(e.target.value)}
+                      disabled={busy}
+                    >
+                      <option value="">
+                        Select a formation...
+                      </option>
+                      {BATTLE_FORMATIONS.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+
+                    <p className="notice">
+                      Everyone must use this formation when building their XI.
+                    </p>
+                  </div>
+
                   <div className="battle-category-actions">
                     <button
                       className="game-button secondary"
@@ -958,6 +1016,8 @@ function SquadBattle() {
                       disabled={
                         !category ||
                         category !== lobby.room?.category ||
+                        !formation ||
+                        lobby.players.length < 3 ||
                         busy
                       }
                     >
@@ -969,9 +1029,9 @@ function SquadBattle() {
 
             {status === "WAITING" &&
               isHost &&
-              lobby.players.length < 2 && (
+              lobby.players.length < 3 && (
                 <p className="notice">
-                  Share the room code with at least one other player. The battle can start once 2 or more players have joined.
+                  Share the room code with at least two other players. The battle can start once 3 or more players have joined.
                 </p>
               )}
 
@@ -979,8 +1039,8 @@ function SquadBattle() {
               !isHost && (
                 <p className="notice">
                   {lobby.room.category
-                    ? `${lobby.room.category} selected. Waiting for the host to start the battle...`
-                    : "Waiting for the host to choose a category..."}
+                    ? `${lobby.room.category} selected. Waiting for the host to choose a formation and start the battle...`
+                    : "Waiting for the host to choose a category and formation..."}
                 </p>
               )}
 
@@ -992,9 +1052,8 @@ function SquadBattle() {
                 </h3>
 
                 <p>
-                  Use Squad Builder, fill
-                  all 11 positions, then
-                  submit the squad ID here.
+                  Use Squad Builder, select the room formation ({lobby.room.formation}),
+                  fill all 11 positions, then submit your squad ID here.
                 </p>
 
                 <div className="inline-actions">
@@ -1028,91 +1087,91 @@ function SquadBattle() {
 
             {status === "VOTING" && (
               <div className="voting-box">
-                <h3>
-                  Vote for the strongest
-                  squad
-                </h3>
+                <h3>Blind position voting</h3>
 
                 <p>
-                  Don't vote for yourself.
-                  Pick the squad you think
-                  fits the category best.
+                  Vote for the strongest opposing player in each position.
+                  Your own selected players are excluded, and squad owners stay hidden.
                 </p>
 
-                {!hasVoted ? (
-                  <div className="vote-grid">
-                    {voteOptions.map(
-                      (option) => (
+                {currentPosition ? (
+                  <>
+                    <p className="notice">
+                      Position {completedPositions + 1} of {voteOptions.length}
+                    </p>
+
+                    <h4>{currentPosition.positionLabel}</h4>
+
+                    <div className="vote-grid">
+                      {currentPosition.options.map((option) => (
                         <button
-                          key={
-                            option.participantId
-                          }
-                          className="vote-option"
+                          key={option.playerId}
+                          type="button"
+                          className="vote-option position-vote-option"
                           onClick={() =>
-                            vote(
-                              option.participantId
-                            )
+                            vote(currentPosition.positionSlot, option.playerId)
                           }
                           disabled={busy}
                         >
-                          <strong>
-                            {option.label}
-                          </strong>
-
+                          {option.photo && (
+                            <img
+                              src={getPlayerImageUrl(option.photo)}
+                              alt=""
+                              loading="lazy"
+                            />
+                          )}
+                          <strong>{option.playerName}</strong>
                           <span>
-                            {option.squad
-                              ?.name ||
-                              "Submitted XI"}
-
-                            {option.squad
-                              ?.managerName
-                              ? ` · ${option.squad.managerName}`
-                              : ""}
+                            {[option.club, option.position, option.nationality]
+                              .filter(Boolean)
+                              .join(" · ")}
                           </span>
                         </button>
-                      )
-                    )}
+                      ))}
+                    </div>
+                  </>
+                ) : voteOptions.length > 0 ? (
+                  <div className="notice success">
+                    All your position votes are saved. Waiting for the other players...
                   </div>
                 ) : (
-                  <div className="notice success">
-                    Vote locked in ✓
+                  <div className="notice">
+                    Loading the voting options...
                   </div>
                 )}
               </div>
             )}
 
-            {results.length > 0 && (
+            {status === "RESULTS" && results?.rankings?.length > 0 && (
               <div className="results">
-                <h3>
-                  Battle Results
-                </h3>
+                <h3>Final Squad Battle Results</h3>
 
-                {results.map(
-                  (result, index) => (
-                    <div
-                      className="result-row"
-                      key={
-                        result.participantId
-                      }
-                    >
-                      <strong>
-                        #{index + 1}
-                      </strong>
+                {results.rankings.map((result) => (
+                  <div className="result-row" key={result.participantId}>
+                    <strong>#{result.rank}</strong>
+                    <span>{result.playerName}</span>
+                    <b>{result.points} points</b>
+                  </div>
+                ))}
 
-                      <span>
-                        {result.playerName}
-                      </span>
+                <h3>Position Winners</h3>
 
-                      <b>
-                        {result.votes}{" "}
-                        vote
-                        {result.votes === 1
-                          ? ""
-                          : "s"}
-                      </b>
-                    </div>
-                  )
-                )}
+                {results.positions?.map((position) => (
+                  <div className="result-row" key={position.positionSlot}>
+                    <strong>{position.positionLabel}</strong>
+                    <span>
+                      {position.winners?.map((winner) => (
+                        <span key={winner.playerId}>
+                          {winner.playerName}
+                          {winner.owners?.length
+                            ? ` — ${winner.owners.join(", ")}`
+                            : ""}
+                        </span>
+                      ))}
+                    </span>
+                    <b>{position.automatic ? "Shared pick" : "Voted"}</b>
+                  </div>
+                ))}
               </div>
             )}
 

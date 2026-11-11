@@ -19,6 +19,8 @@ public class BattleRoom {
 
     private String category;
 
+    private String formation;
+
     @Enumerated(EnumType.STRING)
     private BattleRoomStatus status;
 
@@ -68,6 +70,14 @@ public class BattleRoom {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getFormation() {
+        return formation;
+    }
+
+    public void setFormation(String formation) {
+        this.formation = formation;
     }
 
     public BattleRoomStatus getStatus() {

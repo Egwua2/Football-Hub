@@ -142,6 +142,8 @@ function SquadBattle() {
       if (room.formation) {
         setFormation(room.formation);
       }
+
+      return room;
     } catch (err) {
       if (requestId === roomRefreshSequence.current) {
         setError(err.message);
@@ -539,8 +541,16 @@ function SquadBattle() {
         playerId
       );
 
-      await loadVoting();
-      setMessage("Vote saved. Move on to the next position.");
+      const latestRoom = await loadRoom();
+
+      if (latestRoom?.status === "VOTING") {
+        await loadVoting();
+      } else if (latestRoom?.status === "RESULTS") {
+        const finalResults = await battleApi.results(roomCode);
+        setResults(finalResults);
+      }
+
+      setMessage("Vote saved.");
     } catch (err) {
       setError(err.message);
     } finally {

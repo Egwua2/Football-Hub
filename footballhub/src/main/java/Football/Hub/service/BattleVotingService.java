@@ -25,7 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 @Service
 public class BattleVotingService {
@@ -112,13 +111,7 @@ public class BattleVotingService {
             if (!automatic && previousVote == null) {
                 Player ownPlayer = getPlayerAtSlot(voter.getSquad(), slot);
 
-                Map<Long, Player> opponents = new TreeMap<>(
-                        Comparator.comparing(
-                                player -> player.getName() == null
-                                        ? ""
-                                        : player.getName().toLowerCase()
-                        )
-                );
+                Map<Long, Player> opponents = new LinkedHashMap<>();
 
                 for (BattleParticipant participant : participants) {
                     if (participant.getId().equals(voter.getId())) {

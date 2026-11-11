@@ -167,7 +167,8 @@ public class BattleRoomController {
             BattleRoom room =
                     battleRoomService.setRandomCategory(
                             roomCode,
-                            request.get("playerName")
+                            request.get("playerName"),
+                            request.get("formation")
                     );
 
             return ResponseEntity.ok(room);

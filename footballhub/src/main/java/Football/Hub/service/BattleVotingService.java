@@ -162,7 +162,10 @@ public class BattleVotingService {
             String positionSlot,
             Long playerId) {
 
-        BattleRoom room = getRoom(roomCode);
+        BattleRoom room =
+                battleRoomRepository.findByRoomCodeForUpdate(roomCode)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException("Room not found."));
 
         if (room.getStatus() != BattleRoomStatus.VOTING) {
             throw new IllegalStateException(

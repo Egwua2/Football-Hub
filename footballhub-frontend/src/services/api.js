@@ -240,10 +240,10 @@ export const battleApi = {
       }
     ),
 
-  start: (roomCode, playerName) =>
+  start: (roomCode, playerName, formation) =>
     request(`/battle/rooms/${encodeURIComponent(roomCode)}/start`, {
       method: "POST",
-      body: JSON.stringify({ playerName }),
+      body: JSON.stringify({ playerName, formation }),
     }),
 
   submit: (roomCode, playerName, squadId) =>
@@ -262,12 +262,13 @@ export const battleApi = {
       )}/options?voterName=${encodeURIComponent(voterName)}`
     ),
 
-  vote: (roomCode, voterName, votedForId) =>
+  vote: (roomCode, voterName, positionSlot, playerId) =>
     request(`/battle/voting/${encodeURIComponent(roomCode)}/vote`, {
       method: "POST",
       body: JSON.stringify({
         voterName,
-        votedForId,
+        positionSlot,
+        playerId,
       }),
     }),
 

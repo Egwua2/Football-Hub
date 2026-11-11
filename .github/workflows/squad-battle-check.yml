@@ -51,4 +51,4 @@ jobs:
 
       - name: Build backend
         working-directory: footballhub
-        run: ./mvnw -B -DskipTests package
+        run: bash ./mvnw -B -DskipTests package

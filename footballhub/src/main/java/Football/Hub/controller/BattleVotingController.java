@@ -1,7 +1,6 @@
 package Football.Hub.controller;
 
-import Football.Hub.model.BattleRankingResult;
-import Football.Hub.model.BattleVote;
+import Football.Hub.model.BattleResultsResponse;
 import Football.Hub.model.BattleVotingOption;
 import Football.Hub.service.BattleVotingService;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +18,6 @@ public class BattleVotingController {
 
     public BattleVotingController(
             BattleVotingService battleVotingService) {
-
         this.battleVotingService = battleVotingService;
     }
 
@@ -29,7 +27,6 @@ public class BattleVotingController {
             @RequestParam String voterName) {
 
         try {
-
             List<BattleVotingOption> options =
                     battleVotingService.getVotingOptions(
                             roomCode,
@@ -40,12 +37,8 @@ public class BattleVotingController {
 
         } catch (IllegalArgumentException |
                  IllegalStateException e) {
-
             return ResponseEntity.badRequest()
-                    .body(Map.of(
-                            "error",
-                            e.getMessage()
-                    ));
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -55,39 +48,34 @@ public class BattleVotingController {
             @RequestBody Map<String, Object> request) {
 
         try {
-
             String voterName =
                     (String) request.get("voterName");
+            String positionSlot =
+                    (String) request.get("positionSlot");
+            Number playerIdNumber =
+                    (Number) request.get("playerId");
 
-            Number votedForIdNumber =
-                    (Number) request.get("votedForId");
-
-            if (votedForIdNumber == null) {
+            if (playerIdNumber == null) {
                 throw new IllegalArgumentException(
-                        "Player to vote for is required."
+                        "Choose a player for this position."
                 );
             }
 
-            Long votedForId =
-                    votedForIdNumber.longValue();
+            battleVotingService.castVote(
+                    roomCode,
+                    voterName,
+                    positionSlot,
+                    playerIdNumber.longValue()
+            );
 
-            BattleVote vote =
-                    battleVotingService.castVote(
-                            roomCode,
-                            voterName,
-                            votedForId
-                    );
-
-            return ResponseEntity.ok(vote);
+            return ResponseEntity.ok(
+                    Map.of("success", true)
+            );
 
         } catch (IllegalArgumentException |
                  IllegalStateException e) {
-
             return ResponseEntity.badRequest()
-                    .body(Map.of(
-                            "error",
-                            e.getMessage()
-                    ));
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -96,20 +84,15 @@ public class BattleVotingController {
             @PathVariable String roomCode) {
 
         try {
-
-            List<BattleRankingResult> results =
-                    battleVotingService.getRanking(roomCode);
+            BattleResultsResponse results =
+                    battleVotingService.getResults(roomCode);
 
             return ResponseEntity.ok(results);
 
         } catch (IllegalArgumentException |
                  IllegalStateException e) {
-
             return ResponseEntity.badRequest()
-                    .body(Map.of(
-                            "error",
-                            e.getMessage()
-                    ));
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 }

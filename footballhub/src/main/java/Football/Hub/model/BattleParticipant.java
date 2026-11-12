@@ -24,6 +24,7 @@ public class BattleParticipant {
     @JsonIgnore
     private BattleRoom room;
 
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "squad_id")
     private Squad squad;

@@ -2,115 +2,170 @@ package Football.Hub.service;
 
 import Football.Hub.model.BattleParticipant;
 import Football.Hub.model.BattleParticipantStatus;
+import Football.Hub.model.BattlePositionVote;
 import Football.Hub.model.BattleRankingResult;
+import Football.Hub.model.BattleResultsResponse;
 import Football.Hub.model.BattleRoom;
 import Football.Hub.model.BattleRoomStatus;
-import Football.Hub.model.BattleVote;
 import Football.Hub.model.BattleVotingOption;
 import Football.Hub.model.Player;
 import Football.Hub.model.Squad;
 import Football.Hub.model.SquadPlayer;
 import Football.Hub.repository.BattleParticipantRepository;
+import Football.Hub.repository.BattlePositionVoteRepository;
 import Football.Hub.repository.BattleRoomRepository;
-import Football.Hub.repository.BattleVoteRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class BattleVotingService {
 
+    private static final List<String> POSITION_SLOT_ORDER = List.of(
+            "GK",
+            "LB", "LWB",
+            "CB_A", "CB_B", "CB_C",
+            "RB", "RWB",
+            "DM", "DM_A", "DM_B", "DM_C",
+            "CM_A", "CM_B", "CM_C",
+            "LM", "RM",
+            "CAM", "CAM_A", "CAM_B", "CAM_C",
+            "LW", "RW",
+            "ST", "ST_A", "ST_B", "CF"
+    );
+
     private final BattleRoomRepository battleRoomRepository;
     private final BattleParticipantRepository battleParticipantRepository;
-    private final BattleVoteRepository battleVoteRepository;
+    private final BattlePositionVoteRepository battlePositionVoteRepository;
 
     public BattleVotingService(
             BattleRoomRepository battleRoomRepository,
             BattleParticipantRepository battleParticipantRepository,
-            BattleVoteRepository battleVoteRepository) {
+            BattlePositionVoteRepository battlePositionVoteRepository) {
 
         this.battleRoomRepository = battleRoomRepository;
         this.battleParticipantRepository = battleParticipantRepository;
-        this.battleVoteRepository = battleVoteRepository;
+        this.battlePositionVoteRepository = battlePositionVoteRepository;
     }
 
+    @Transactional
     public List<BattleVotingOption> getVotingOptions(
             String roomCode,
             String voterName) {
 
-        BattleRoom room =
-                battleRoomRepository.findByRoomCode(roomCode)
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "Room not found."
-                                ));
+        BattleRoom room = getRoom(roomCode);
 
         if (room.getStatus() != BattleRoomStatus.VOTING) {
             throw new IllegalStateException(
                     "Voting is not currently active."
             );
         }
-
-        BattleParticipant voter =
-                battleParticipantRepository
-                        .findByRoomIdAndPlayerName(
-                                room.getId(),
-                                voterName
-                        )
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "Player is not in this room."
-                                ));
 
         List<BattleParticipant> participants =
-                battleParticipantRepository
-                        .findByRoomId(room.getId());
+                battleParticipantRepository.findByRoomId(room.getId());
 
-        List<BattleVotingOption> options =
-                new ArrayList<>();
+        BattleParticipant voter = participants.stream()
+                .filter(item ->
+                        item.getPlayerName().equalsIgnoreCase(voterName.trim()))
+                .findFirst()
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Player is not in this room."
+                        ));
 
-        int labelNumber = 1;
+        List<String> positionSlots = getPositionSlots(participants);
+        List<BattlePositionVote> previousVotes =
+                battlePositionVoteRepository.findByRoomIdAndVoterId(
+                        room.getId(),
+                        voter.getId()
+                );
 
-        for (BattleParticipant participant : participants) {
-
-            if (participant.getId().equals(voter.getId())) {
-                continue;
-            }
-
-            if (!participant.isSubmitted() ||
-                    participant.getSquad() == null) {
-                continue;
-            }
-
-            options.add(
-                    new BattleVotingOption(
-                            participant.getId(),
-                            "Squad " + labelNumber,
-                            participant.getSquad()
-                    )
-            );
-
-            labelNumber++;
+        Map<String, BattlePositionVote> votesBySlot = new HashMap<>();
+        for (BattlePositionVote vote : previousVotes) {
+            votesBySlot.put(vote.getPositionSlot(), vote);
         }
 
-        return options;
+        List<BattleVotingOption> groups = new ArrayList<>();
+
+        for (String slot : positionSlots) {
+            Map<Long, Player> distinctPlayers =
+                    getDistinctPlayers(participants, slot);
+
+            boolean automatic = distinctPlayers.size() == 1;
+            BattlePositionVote previousVote = votesBySlot.get(slot);
+            Player automaticPlayer = automatic
+                    ? distinctPlayers.values().iterator().next()
+                    : null;
+
+            List<BattleVotingOption.Candidate> options =
+                    new ArrayList<>();
+
+            if (!automatic && previousVote == null) {
+                Player ownPlayer = getPlayerAtSlot(voter.getSquad(), slot);
+
+                Map<Long, Player> opponents = new LinkedHashMap<>();
+
+                for (BattleParticipant participant : participants) {
+                    if (participant.getId().equals(voter.getId())) {
+                        continue;
+                    }
+
+                    Player player = getPlayerAtSlot(participant.getSquad(), slot);
+
+                    if (player != null &&
+                            (ownPlayer == null ||
+                                    !player.getId().equals(ownPlayer.getId()))) {
+                        opponents.putIfAbsent(player.getId(), player);
+                    }
+                }
+
+                for (Player player : opponents.values()) {
+                    options.add(new BattleVotingOption.Candidate(player));
+                }
+
+                Collections.shuffle(options);
+            }
+
+            groups.add(
+                    new BattleVotingOption(
+                            slot,
+                            positionLabel(slot),
+                            automatic || previousVote != null,
+                            automatic,
+                            automaticPlayer == null ? null : automaticPlayer.getName(),
+                            previousVote != null
+                                    ? previousVote.getPlayer().getId()
+                                    : automaticPlayer == null
+                                            ? null
+                                            : automaticPlayer.getId(),
+                            options
+                    )
+            );
+        }
+
+        finishVotingIfComplete(room, participants, positionSlots);
+        return groups;
     }
 
-    public BattleVote castVote(
+    @Transactional
+    public BattlePositionVote castVote(
             String roomCode,
             String voterName,
-            Long votedForId) {
+            String positionSlot,
+            Long playerId) {
 
         BattleRoom room =
-                battleRoomRepository.findByRoomCode(roomCode)
+                battleRoomRepository.findByRoomCodeForUpdate(roomCode)
                         .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "Room not found."
-                                ));
+                                new IllegalArgumentException("Room not found."));
 
         if (room.getStatus() != BattleRoomStatus.VOTING) {
             throw new IllegalStateException(
@@ -118,106 +173,102 @@ public class BattleVotingService {
             );
         }
 
-        BattleParticipant voter =
-                battleParticipantRepository
-                        .findByRoomIdAndPlayerName(
-                                room.getId(),
-                                voterName
-                        )
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "Voter is not in this room."
-                                ));
-
-        BattleParticipant votedFor =
-                battleParticipantRepository
-                        .findById(votedForId)
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "Player being voted for was not found."
-                                ));
-
-        if (!votedFor.getRoom().getId().equals(room.getId())) {
+        if (playerId == null || positionSlot == null ||
+                positionSlot.isBlank()) {
             throw new IllegalArgumentException(
-                    "That player is not in this battle."
+                    "Choose a player for this position."
             );
         }
 
-        if (voter.getId().equals(votedFor.getId())) {
+        List<BattleParticipant> participants =
+                battleParticipantRepository.findByRoomId(room.getId());
+
+        BattleParticipant voter = participants.stream()
+                .filter(item ->
+                        item.getPlayerName().equalsIgnoreCase(voterName.trim()))
+                .findFirst()
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Voter is not in this room."
+                        ));
+
+        List<String> positionSlots = getPositionSlots(participants);
+
+        if (!positionSlots.contains(positionSlot)) {
             throw new IllegalArgumentException(
-                    "You cannot vote for yourself."
+                    "That position is not part of this formation."
             );
         }
 
-        if (!votedFor.isSubmitted() ||
-                votedFor.getSquad() == null) {
+        Map<Long, Player> distinctPlayers =
+                getDistinctPlayers(participants, positionSlot);
+
+        if (distinctPlayers.size() == 1) {
             throw new IllegalStateException(
-                    "That player has not submitted a squad."
+                    "Everyone selected the same player for this position. The point is awarded automatically."
             );
         }
 
-        if (battleVoteRepository
-                .findByRoomIdAndVoterId(
+        if (battlePositionVoteRepository
+                .findByRoomIdAndVoterIdAndPositionSlot(
                         room.getId(),
-                        voter.getId()
+                        voter.getId(),
+                        positionSlot
                 )
                 .isPresent()) {
-
             throw new IllegalStateException(
-                    "You have already voted."
+                    "You have already voted for this position."
             );
         }
 
-        BattleVote vote =
-                new BattleVote(
-                        room,
-                        voter,
-                        votedFor
-                );
+        Player ownPlayer = getPlayerAtSlot(voter.getSquad(), positionSlot);
 
-        BattleVote savedVote =
-                battleVoteRepository.save(vote);
-
-        long totalPlayers =
-                battleParticipantRepository
-                        .countByRoomId(room.getId());
-
-        long totalVotes =
-                battleVoteRepository
-                        .countByRoomId(room.getId());
-
-        if (totalVotes == totalPlayers) {
-
-            room.setStatus(BattleRoomStatus.RESULTS);
-            battleRoomRepository.save(room);
-
-            List<BattleParticipant> participants =
-                    battleParticipantRepository
-                            .findByRoomId(room.getId());
-
-            for (BattleParticipant participant :
-                    participants) {
-
-                participant.setStatus(
-                        BattleParticipantStatus.FINISHED
-                );
-
-                battleParticipantRepository.save(participant);
-            }
+        if (ownPlayer != null && ownPlayer.getId().equals(playerId)) {
+            throw new IllegalArgumentException(
+                    "You cannot vote for a player in your own squad."
+            );
         }
 
+        Player selectedPlayer = distinctPlayers.get(playerId);
+
+        if (selectedPlayer == null) {
+            throw new IllegalArgumentException(
+                    "That player was not selected for this position."
+            );
+        }
+
+        boolean belongsToOpponent = participants.stream()
+                .filter(participant ->
+                        !participant.getId().equals(voter.getId()))
+                .map(participant ->
+                        getPlayerAtSlot(participant.getSquad(), positionSlot))
+                .anyMatch(player ->
+                        player != null && player.getId().equals(playerId));
+
+        if (!belongsToOpponent) {
+            throw new IllegalArgumentException(
+                    "You can only vote for a player in another participant's squad."
+            );
+        }
+
+        BattlePositionVote vote = new BattlePositionVote(
+                room,
+                voter,
+                selectedPlayer,
+                positionSlot
+        );
+
+        BattlePositionVote savedVote =
+                battlePositionVoteRepository.save(vote);
+
+        finishVotingIfComplete(room, participants, positionSlots);
         return savedVote;
     }
 
-    public List<BattleRankingResult> getRanking(
-            String roomCode) {
+    @Transactional(readOnly = true)
+    public BattleResultsResponse getResults(String roomCode) {
 
-        BattleRoom room =
-                battleRoomRepository.findByRoomCode(roomCode)
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "Room not found."
-                                ));
+        BattleRoom room = getRoom(roomCode);
 
         if (room.getStatus() != BattleRoomStatus.RESULTS) {
             throw new IllegalStateException(
@@ -226,130 +277,302 @@ public class BattleVotingService {
         }
 
         List<BattleParticipant> participants =
-                battleParticipantRepository
-                        .findByRoomId(room.getId());
+                battleParticipantRepository.findByRoomId(room.getId());
 
-        List<BattleVote> votes =
-                battleVoteRepository
-                        .findByRoomId(room.getId());
+        List<String> positionSlots = getPositionSlots(participants);
+        List<BattlePositionVote> votes =
+                battlePositionVoteRepository.findByRoomId(room.getId());
 
-        Map<Long, Integer> voteCounts =
-                new HashMap<>();
-
-        for (BattleParticipant participant :
-                participants) {
-
-            voteCounts.put(
-                    participant.getId(),
-                    0
-            );
+        Map<Long, Integer> points = new HashMap<>();
+        for (BattleParticipant participant : participants) {
+            points.put(participant.getId(), 0);
         }
 
-        for (BattleVote vote : votes) {
-
-            Long participantId =
-                    vote.getVotedFor().getId();
-
-            voteCounts.put(
-                    participantId,
-                    voteCounts.getOrDefault(
-                            participantId,
-                            0
-                    ) + 1
-            );
-        }
-
-        List<BattleRankingResult> results =
+        List<BattleResultsResponse.PositionResult> positionResults =
                 new ArrayList<>();
 
-        for (BattleParticipant participant :
-                participants) {
+        for (String slot : positionSlots) {
+            Map<Long, Player> distinctPlayers =
+                    getDistinctPlayers(participants, slot);
 
-            double squadScore =
-                    calculateSquadScore(
-                            participant.getSquad()
+            boolean automatic = distinctPlayers.size() == 1;
+            Map<Long, Integer> voteCounts = new HashMap<>();
+
+            for (BattlePositionVote vote : votes) {
+                if (vote.getPositionSlot().equals(slot)) {
+                    Long selectedId = vote.getPlayer().getId();
+                    voteCounts.put(
+                            selectedId,
+                            voteCounts.getOrDefault(selectedId, 0) + 1
+                    );
+                }
+            }
+
+            List<Long> winningPlayerIds = new ArrayList<>();
+
+            if (automatic) {
+                winningPlayerIds.add(
+                        distinctPlayers.keySet().iterator().next()
+                );
+            } else {
+                int highestVotes = voteCounts.values().stream()
+                        .max(Integer::compareTo)
+                        .orElse(0);
+
+                for (Long candidateId : distinctPlayers.keySet()) {
+                    if (voteCounts.getOrDefault(candidateId, 0) == highestVotes) {
+                        winningPlayerIds.add(candidateId);
+                    }
+                }
+            }
+
+            List<BattleResultsResponse.Winner> winners =
+                    new ArrayList<>();
+
+            for (Long winningPlayerId : winningPlayerIds) {
+                Player player = distinctPlayers.get(winningPlayerId);
+
+                List<String> owners = new ArrayList<>();
+
+                for (BattleParticipant participant : participants) {
+                    Player selected = getPlayerAtSlot(
+                            participant.getSquad(),
+                            slot
                     );
 
-            results.add(
-                    new BattleRankingResult(
-                            0,
-                            participant.getId(),
-                            participant.getPlayerName(),
-                            voteCounts.getOrDefault(
-                                    participant.getId(),
-                                    0
-                            ),
-                            squadScore
+                    if (selected != null &&
+                            selected.getId().equals(winningPlayerId)) {
+                        owners.add(participant.getPlayerName());
+                        points.put(
+                                participant.getId(),
+                                points.getOrDefault(participant.getId(), 0) + 1
+                        );
+                    }
+                }
+
+                winners.add(
+                        new BattleResultsResponse.Winner(
+                                player.getId(),
+                                player.getName(),
+                                player.getClub(),
+                                player.getPhoto(),
+                                owners
+                        )
+                );
+            }
+
+            positionResults.add(
+                    new BattleResultsResponse.PositionResult(
+                            slot,
+                            positionLabel(slot),
+                            automatic,
+                            winners
                     )
             );
         }
 
-        results.sort(
+        List<BattleParticipant> orderedParticipants =
+                new ArrayList<>(participants);
+
+        orderedParticipants.sort(
                 Comparator
                         .comparingInt(
-                                BattleRankingResult::getVotes
+                                (BattleParticipant participant) ->
+                                        points.getOrDefault(participant.getId(), 0)
                         )
                         .reversed()
                         .thenComparing(
-                                BattleRankingResult::getSquadScore,
-                                Comparator.reverseOrder()
+                                participant -> participant.getPlayerName().toLowerCase()
                         )
         );
 
-        List<BattleRankingResult> rankedResults =
-                new ArrayList<>();
+        List<BattleRankingResult> rankings = new ArrayList<>();
+        int currentRank = 0;
+        int previousPoints = -1;
 
-        for (int i = 0; i < results.size(); i++) {
+        for (int i = 0; i < orderedParticipants.size(); i++) {
+            BattleParticipant participant = orderedParticipants.get(i);
+            int totalPoints = points.getOrDefault(participant.getId(), 0);
 
-            BattleRankingResult result =
-                    results.get(i);
+            if (totalPoints != previousPoints) {
+                currentRank = i + 1;
+                previousPoints = totalPoints;
+            }
 
-            rankedResults.add(
+            rankings.add(
                     new BattleRankingResult(
-                            i + 1,
-                            result.getParticipantId(),
-                            result.getPlayerName(),
-                            result.getVotes(),
-                            result.getSquadScore()
+                            currentRank,
+                            participant.getId(),
+                            participant.getPlayerName(),
+                            totalPoints
                     )
             );
         }
 
-        return rankedResults;
+        return new BattleResultsResponse(rankings, positionResults);
     }
 
-    private double calculateSquadScore(Squad squad) {
+    private BattleRoom getRoom(String roomCode) {
+        return battleRoomRepository.findByRoomCode(roomCode)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Room not found."));
+    }
 
-        if (squad == null ||
-                squad.getSquadPlayers() == null ||
-                squad.getSquadPlayers().isEmpty()) {
+    private List<String> getPositionSlots(
+            List<BattleParticipant> participants) {
 
-            return 0;
+        if (participants.isEmpty()) {
+            throw new IllegalStateException(
+                    "There are no players in this battle."
+            );
         }
 
-        double total = 0;
-        int count = 0;
+        BattleParticipant first = participants.get(0);
+        if (!first.isSubmitted() || first.getSquad() == null) {
+            throw new IllegalStateException(
+                    "All participants must submit their squads before voting."
+            );
+        }
 
-        for (SquadPlayer squadPlayer :
-                squad.getSquadPlayers()) {
+        List<String> slots = first.getSquad().getSquadPlayers()
+                .stream()
+                .map(SquadPlayer::getPositionSlot)
+                .distinct()
+                .sorted(Comparator.comparingInt(this::positionOrder))
+                .toList();
 
-            Player player =
-                    squadPlayer.getPlayer();
+        if (slots.size() != 11) {
+            throw new IllegalStateException(
+                    "Each submitted squad must contain 11 different positions."
+            );
+        }
 
-            if (player != null &&
-                    player.getRating() != null) {
+        Set<String> expected = Set.copyOf(slots);
 
-                total += player.getRating();
-                count++;
+        for (BattleParticipant participant : participants) {
+            if (!participant.isSubmitted() || participant.getSquad() == null) {
+                throw new IllegalStateException(
+                        "All participants must submit their squads before voting."
+                );
+            }
+
+            if (participant.getSquad().getFormation() == null ||
+                    participants.get(0).getSquad().getFormation() == null ||
+                    !participant.getSquad().getFormation().equalsIgnoreCase(
+                            participants.get(0).getSquad().getFormation())) {
+                throw new IllegalStateException(
+                        "All participants must use the same formation."
+                );
+            }
+
+            Set<String> participantSlots = participant.getSquad()
+                    .getSquadPlayers()
+                    .stream()
+                    .map(SquadPlayer::getPositionSlot)
+                    .collect(java.util.stream.Collectors.toSet());
+
+            if (!participantSlots.equals(expected)) {
+                throw new IllegalStateException(
+                        "All squads must contain the same 11 position slots."
+                );
             }
         }
 
-        if (count == 0) {
-            return 0;
+        return slots;
+    }
+
+    private int positionOrder(String slot) {
+        int index = POSITION_SLOT_ORDER.indexOf(slot);
+        return index < 0 ? POSITION_SLOT_ORDER.size() : index;
+    }
+
+    private Map<Long, Player> getDistinctPlayers(
+            List<BattleParticipant> participants,
+            String slot) {
+
+        Map<Long, Player> players = new LinkedHashMap<>();
+
+        for (BattleParticipant participant : participants) {
+            Player player = getPlayerAtSlot(participant.getSquad(), slot);
+
+            if (player != null) {
+                players.putIfAbsent(player.getId(), player);
+            }
         }
 
-        return Math.round(
-                (total / count) * 100
-        ) / 100.0;
+        return players;
+    }
+
+    private Player getPlayerAtSlot(Squad squad, String slot) {
+        if (squad == null || squad.getSquadPlayers() == null) {
+            return null;
+        }
+
+        return squad.getSquadPlayers()
+                .stream()
+                .filter(item -> slot.equals(item.getPositionSlot()))
+                .map(SquadPlayer::getPlayer)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private String positionLabel(String slot) {
+        String base = slot;
+        String suffix = "";
+
+        if (slot.matches(".*_[ABC]$")) {
+            String letter = slot.substring(slot.length() - 1);
+            base = slot.substring(0, slot.length() - 2);
+            suffix = " " + (letter.equals("A") ? "1" :
+                    letter.equals("B") ? "2" : "3");
+        }
+
+        String label = switch (base) {
+            case "GK" -> "Goalkeeper";
+            case "LB" -> "Left Back";
+            case "RB" -> "Right Back";
+            case "LWB" -> "Left Wing-back";
+            case "RWB" -> "Right Wing-back";
+            case "CB" -> "Centre Back";
+            case "DM" -> "Defensive Midfielder";
+            case "CM" -> "Central Midfielder";
+            case "LM" -> "Left Midfielder";
+            case "RM" -> "Right Midfielder";
+            case "CAM" -> "Attacking Midfielder";
+            case "LW" -> "Left Winger";
+            case "RW" -> "Right Winger";
+            case "ST" -> "Striker";
+            case "CF" -> "Centre Forward";
+            default -> base;
+        };
+
+        return label + suffix;
+    }
+
+    private void finishVotingIfComplete(
+            BattleRoom room,
+            List<BattleParticipant> participants,
+            List<String> positionSlots) {
+
+        long positionsRequiringVotes = positionSlots.stream()
+                .filter(slot ->
+                        getDistinctPlayers(participants, slot).size() > 1)
+                .count();
+
+        long expectedVotes =
+                positionsRequiringVotes * participants.size();
+
+        long submittedVotes =
+                battlePositionVoteRepository.countByRoomId(room.getId());
+
+        if (submittedVotes >= expectedVotes) {
+            room.setStatus(BattleRoomStatus.RESULTS);
+            battleRoomRepository.save(room);
+
+            for (BattleParticipant participant : participants) {
+                participant.setStatus(BattleParticipantStatus.FINISHED);
+                battleParticipantRepository.save(participant);
+            }
+        }
     }
 }

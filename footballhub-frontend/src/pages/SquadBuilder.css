@@ -1759,3 +1759,36 @@
   opacity: 0.6;
   cursor: wait;
 }
+
+
+/* Small notice shown when Squad Builder is opened from Squad Battle. */
+.builder-battle-note {
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid rgba(92, 174, 255, 0.24);
+  border-radius: 12px;
+  background: rgba(92, 174, 255, 0.07);
+  color: #dbeafe;
+}
+
+.builder-battle-note strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #ffffff;
+}
+
+.builder-battle-note p {
+  margin: 0 0 8px;
+  color: #aebed1;
+  line-height: 1.5;
+}
+
+.builder-battle-note a {
+  color: #78b9ff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.builder-battle-note a:hover {
+  text-decoration: underline;
+}

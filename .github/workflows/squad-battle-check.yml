@@ -1,0 +1,105 @@
+name: Squad Battle build checks
+
+on:
+  push:
+    branches:
+      - refurbish-squad-battle-voting
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: footballhub-frontend
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: footballhub-frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+  backend:
+    name: Backend Maven build and MySQL startup
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: footballhub_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build backend
+        working-directory: footballhub
+        run: bash ./mvnw -B -DskipTests package
+
+      - name: Start backend against MySQL 8.4 and verify schema initialization
+        working-directory: footballhub
+        env:
+          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/footballhub_test
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: root
+          SPRING_JPA_HIBERNATE_DDL_AUTO: update
+          PORT: 8080
+        run: |
+          java -jar target/footballhub-0.0.1-SNAPSHOT.jar > /tmp/footballhub-mysql.log 2>&1 &
+          APP_PID=$!
+          trap 'kill "$APP_PID" 2>/dev/null || true' EXIT
+
+          READY=0
+          for attempt in $(seq 1 90); do
+            if curl --silent --fail http://127.0.0.1:8080/api/health > /tmp/footballhub-health.json; then
+              READY=1
+              break
+            fi
+
+            if ! kill -0 "$APP_PID" 2>/dev/null; then
+              cat /tmp/footballhub-mysql.log
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+          if [ "$READY" -ne 1 ]; then
+            cat /tmp/footballhub-mysql.log
+            echo "Backend did not become healthy against MySQL 8.4."
+            exit 1
+          fi
+
+          grep -q '"status":"ok"' /tmp/footballhub-health.json
+          grep -q 'Initialized JPA EntityManagerFactory' /tmp/footballhub-mysql.log
+          echo "Backend health and Hibernate schema initialization passed on MySQL 8.4."

@@ -5,8 +5,7 @@ public class BattleRankingResult {
     private int rank;
     private Long participantId;
     private String playerName;
-    private int votes;
-    private double squadScore;
+    private int points;
 
     public BattleRankingResult() {
     }
@@ -15,14 +14,12 @@ public class BattleRankingResult {
             int rank,
             Long participantId,
             String playerName,
-            int votes,
-            double squadScore) {
+            int points) {
 
         this.rank = rank;
         this.participantId = participantId;
         this.playerName = playerName;
-        this.votes = votes;
-        this.squadScore = squadScore;
+        this.points = points;
     }
 
     public int getRank() {
@@ -37,11 +34,7 @@ public class BattleRankingResult {
         return playerName;
     }
 
-    public int getVotes() {
-        return votes;
-    }
-
-    public double getSquadScore() {
-        return squadScore;
+    public int getPoints() {
+        return points;
     }
 }

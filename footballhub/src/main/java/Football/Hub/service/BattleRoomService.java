@@ -8,6 +8,7 @@ import Football.Hub.model.BattleRoomStatus;
 import Football.Hub.model.Squad;
 import Football.Hub.repository.BattleCategoryRepository;
 import Football.Hub.repository.BattleParticipantRepository;
+import Football.Hub.repository.BattlePositionVoteRepository;
 import Football.Hub.repository.BattleRoomRepository;
 import Football.Hub.repository.BattleVoteRepository;
 import Football.Hub.repository.SquadRepository;
@@ -25,7 +26,16 @@ public class BattleRoomService {
     private final BattleParticipantRepository battleParticipantRepository;
     private final BattleCategoryRepository battleCategoryRepository;
     private final BattleVoteRepository battleVoteRepository;
+    private final BattlePositionVoteRepository battlePositionVoteRepository;
     private final SquadRepository squadRepository;
+
+    private static final List<String> ALLOWED_FORMATIONS = List.of(
+            "4-3-3", "4-4-2", "4-2-3-1", "4-1-4-1", "4-3-2-1",
+            "4-2-2-2", "4-4-1-1", "4-3-1-2", "4-1-2-3", "4-5-1",
+            "3-5-2", "3-4-3", "3-4-1-2", "3-4-2-1", "3-3-3-1",
+            "3-1-4-2", "3-2-4-1", "5-3-2", "5-4-1", "5-2-3",
+            "5-3-1-1", "5-2-1-2", "4-2-1-3", "4-3-3 DM", "4-3-3 False 9"
+    );
 
     private static final List<String> DEFAULT_CATEGORIES = List.of(
             "Best Premier League XI",
@@ -121,12 +131,14 @@ public class BattleRoomService {
             BattleParticipantRepository battleParticipantRepository,
             BattleCategoryRepository battleCategoryRepository,
             BattleVoteRepository battleVoteRepository,
+            BattlePositionVoteRepository battlePositionVoteRepository,
             SquadRepository squadRepository) {
 
         this.battleRoomRepository = battleRoomRepository;
         this.battleParticipantRepository = battleParticipantRepository;
         this.battleCategoryRepository = battleCategoryRepository;
         this.battleVoteRepository = battleVoteRepository;
+        this.battlePositionVoteRepository = battlePositionVoteRepository;
         this.squadRepository = squadRepository;
     }
 
@@ -159,11 +171,19 @@ public class BattleRoomService {
                         new IllegalArgumentException("Room not found."));
     }
 
+    private BattleRoom getRoomForUpdate(String roomCode) {
+
+        return battleRoomRepository.findByRoomCodeForUpdate(roomCode)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Room not found."));
+    }
+
+    @Transactional
     public BattleParticipant joinRoom(
             String roomCode,
             String playerName) {
 
-        BattleRoom room = getRoom(roomCode);
+        BattleRoom room = getRoomForUpdate(roomCode);
 
         if (room.getStatus() != BattleRoomStatus.WAITING) {
             throw new IllegalStateException(
@@ -221,7 +241,7 @@ public class BattleRoomService {
             throw new IllegalArgumentException("Player name is required.");
         }
 
-        BattleRoom room = getRoom(roomCode);
+        BattleRoom room = getRoomForUpdate(roomCode);
 
         BattleParticipant leavingPlayer =
                 battleParticipantRepository
@@ -247,6 +267,9 @@ public class BattleRoomService {
                         .toList();
 
         battleVoteRepository.deleteAll(relatedVotes);
+        battlePositionVoteRepository.deleteByRoomIdAndVoterId(
+                room.getId(), leavingPlayerId
+        );
 
         boolean wasHost = leavingPlayer.isHost();
 
@@ -279,39 +302,28 @@ public class BattleRoomService {
             room.setHostName(nextHost.getPlayerName());
         }
 
-        // A battle cannot continue with fewer than two players.
-        // Return it to the lobby so another player can join.
-        if (remainingPlayers.size() < 2 &&
-                room.getStatus() != BattleRoomStatus.WAITING) {
+        // If someone leaves after the battle starts, clear the current round
+        // so the remaining players can restart without stale submissions or votes.
+        if (room.getStatus() == BattleRoomStatus.BUILDING ||
+                room.getStatus() == BattleRoomStatus.VOTING) {
 
             battleVoteRepository.deleteAll(
                     battleVoteRepository.findByRoomId(room.getId())
             );
+            battlePositionVoteRepository.deleteByRoomId(room.getId());
 
             room.setStatus(BattleRoomStatus.WAITING);
-            room.setCategory(null);
+
+            if (remainingPlayers.size() < 3) {
+                room.setCategory(null);
+                room.setFormation(null);
+            }
 
             for (BattleParticipant player : remainingPlayers) {
                 player.setSubmitted(false);
                 player.setSquad(null);
                 player.setStatus(BattleParticipantStatus.BUILDING);
                 battleParticipantRepository.save(player);
-            }
-        } else if (room.getStatus() == BattleRoomStatus.BUILDING) {
-
-            long submittedCount = remainingPlayers.stream()
-                    .filter(BattleParticipant::isSubmitted)
-                    .count();
-
-            if (remainingPlayers.size() >= 2 &&
-                    submittedCount == remainingPlayers.size()) {
-
-                room.setStatus(BattleRoomStatus.VOTING);
-
-                for (BattleParticipant player : remainingPlayers) {
-                    player.setStatus(BattleParticipantStatus.VOTING);
-                    battleParticipantRepository.save(player);
-                }
             }
         }
 
@@ -442,11 +454,13 @@ public class BattleRoomService {
         return battleRoomRepository.save(room);
     }
 
+    @Transactional
     public BattleRoom startBattle(
             String roomCode,
-            String playerName) {
+            String playerName,
+            String formation) {
 
-        BattleRoom room = getRoom(roomCode);
+        BattleRoom room = getRoomForUpdate(roomCode);
         requireHost(room, playerName);
 
         if (room.getStatus() != BattleRoomStatus.WAITING) {
@@ -463,17 +477,25 @@ public class BattleRoomService {
             );
         }
 
+        if (formation == null ||
+                !ALLOWED_FORMATIONS.contains(formation.trim())) {
+            throw new IllegalArgumentException(
+                    "Choose a valid formation before starting."
+            );
+        }
+
         long playerCount =
                 battleParticipantRepository.countByRoomId(
                         room.getId()
                 );
 
-        if (playerCount < 2) {
+        if (playerCount < 3) {
             throw new IllegalStateException(
-                    "At least 2 players are needed to start."
+                    "At least 3 players are needed to start."
             );
         }
 
+        room.setFormation(formation.trim());
         room.setStatus(BattleRoomStatus.BUILDING);
 
         List<BattleParticipant> participants =
@@ -494,12 +516,13 @@ public class BattleRoomService {
         return battleRoomRepository.save(room);
     }
 
+    @Transactional
     public BattleParticipant submitSquad(
             String roomCode,
             String playerName,
             Long squadId) {
 
-        BattleRoom room = getRoom(roomCode);
+        BattleRoom room = getRoomForUpdate(roomCode);
 
         if (room.getStatus() != BattleRoomStatus.BUILDING) {
             throw new IllegalStateException(
@@ -539,6 +562,14 @@ public class BattleRoomService {
         if (squad.getSquadPlayers().size() != 11) {
             throw new IllegalArgumentException(
                     "Your squad must contain exactly 11 players."
+            );
+        }
+
+        if (room.getFormation() == null ||
+                squad.getFormation() == null ||
+                !room.getFormation().equalsIgnoreCase(squad.getFormation())) {
+            throw new IllegalArgumentException(
+                    "Your squad must use the room formation: " + room.getFormation()
             );
         }
 

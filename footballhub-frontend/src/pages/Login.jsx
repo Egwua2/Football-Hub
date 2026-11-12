@@ -56,6 +56,13 @@ function Login() {
       }
 
       if (!response.ok) {
+        if (data?.code === "EMAIL_NOT_VERIFIED" && data?.email) {
+          navigate("/verify-email", {
+            state: { email: data.email },
+          });
+          return;
+        }
+
         throw new Error(
           typeof data === "string"
             ? data

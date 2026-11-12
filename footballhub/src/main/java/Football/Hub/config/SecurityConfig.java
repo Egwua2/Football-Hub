@@ -91,8 +91,6 @@ public class SecurityConfig {
                                 HttpMethod.POST,
                                 "/api/users/signup",
                                 "/api/users/login",
-                                "/api/users/verify-email",
-                                "/api/users/resend-verification",
                                 "/api/users/forgot-password",
                                 "/api/users/reset-password"
                         ).permitAll()

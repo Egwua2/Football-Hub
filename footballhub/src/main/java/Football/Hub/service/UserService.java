@@ -15,7 +15,6 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final EmailVerificationService emailVerificationService;
 
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$");
@@ -25,12 +24,10 @@ public class UserService {
 
     public UserService(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder,
-            EmailVerificationService emailVerificationService) {
+            PasswordEncoder passwordEncoder) {
 
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.emailVerificationService = emailVerificationService;
     }
 
     @Transactional
@@ -86,12 +83,7 @@ public class UserService {
         }
 
         user.setPassword(passwordEncoder.encode(password));
-        user.setEmailVerified(false);
-
-        User savedUser = userRepository.save(user);
-        emailVerificationService.sendCode(savedUser);
-
-        return savedUser;
+        return userRepository.save(user);
     }
 
     public User login(String login, String password) {
@@ -116,25 +108,7 @@ public class UserService {
             throw new IllegalArgumentException("Invalid login details.");
         }
 
-        if (!user.isEmailVerified()) {
-            throw new EmailNotVerifiedException(user.getEmail());
-        }
-
         return user;
-    }
-
-    public User verifyEmail(String email, String code) {
-        return emailVerificationService.verifyCode(email, code);
-    }
-
-    public void resendVerification(String email) {
-        if (email == null || email.isBlank()) {
-            return;
-        }
-
-        userRepository.findByEmailIgnoreCase(email.trim())
-                .filter(user -> !user.isEmailVerified())
-                .ifPresent(emailVerificationService::sendCode);
     }
 
     public User getUser(Long id) {

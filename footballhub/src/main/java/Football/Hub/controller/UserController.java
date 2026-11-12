@@ -3,35 +3,49 @@ package Football.Hub.controller;
 import Football.Hub.dto.UserResponse;
 import Football.Hub.model.User;
 import Football.Hub.service.AuthSessionService;
+import Football.Hub.service.PasswordResetService;
 import Football.Hub.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(UserController.class);
+
+    private static final String PASSWORD_RESET_MESSAGE =
+            "If an account exists for that email, a password reset code will be sent.";
+
     private final UserService userService;
     private final AuthSessionService authSessionService;
+    private final PasswordResetService passwordResetService;
 
     public UserController(
             UserService userService,
-            AuthSessionService authSessionService) {
+            AuthSessionService authSessionService,
+            PasswordResetService passwordResetService) {
         this.userService = userService;
         this.authSessionService = authSessionService;
+        this.passwordResetService = passwordResetService;
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody User user) {
+    public ResponseEntity<?> signup(@RequestBody SignupRequest request) {
         try {
-            User savedUser = userService.register(user);
-            return ResponseEntity.ok(
-                    authSessionService.createSession(savedUser)
-            );
+            User savedUser = userService.register(request.toUser());
+            return ResponseEntity.ok(authSessionService.createSession(savedUser));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", e.getMessage()));
         }
     }
 
@@ -43,11 +57,49 @@ public class UserController {
                     request.password()
             );
 
-            return ResponseEntity.ok(
-                    authSessionService.createSession(user)
-            );
+            return ResponseEntity.ok(authSessionService.createSession(user));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(
+            @RequestBody ForgotPasswordRequest request) {
+        try {
+            passwordResetService.requestReset(request.email());
+            return ResponseEntity.ok(Map.of("message", PASSWORD_RESET_MESSAGE));
+        } catch (PasswordResetService.RateLimitException e) {
+            // Keep the response identical so this endpoint does not reveal
+            // whether an email address belongs to an account.
+            return ResponseEntity.ok(Map.of("message", PASSWORD_RESET_MESSAGE));
+        } catch (PasswordResetService.EmailDeliveryException e) {
+            LOGGER.warn("A password reset email could not be delivered: {}", e.getMessage(), e);
+            return ResponseEntity.ok(Map.of("message", PASSWORD_RESET_MESSAGE));
+        } catch (PasswordResetService.EmailDeliveryDisabledException e) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(
+            @RequestBody ResetPasswordRequest request) {
+        try {
+            passwordResetService.resetPassword(
+                    request.email(),
+                    request.code(),
+                    request.newPassword()
+            );
+
+            return ResponseEntity.ok(Map.of(
+                    "message",
+                    "Your password has been reset. Please log in with your new password."
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", e.getMessage()));
         }
     }
 
@@ -124,6 +176,45 @@ public class UserController {
         return Long.parseLong(authentication.getName());
     }
 
+    public record SignupRequest(
+            String username,
+            String email,
+            String password,
+            Integer age,
+            String gender,
+            String firstName,
+            String lastName,
+            String country,
+            String favouriteClub,
+            String favouritePlayer,
+            String favouritePosition) {
+
+        public User toUser() {
+            User user = new User();
+            user.setUsername(username);
+            user.setEmail(email);
+            user.setPassword(password);
+            user.setAge(age);
+            user.setGender(gender);
+            user.setFirstName(firstName);
+            user.setLastName(lastName);
+            user.setCountry(country);
+            user.setFavouriteClub(favouriteClub);
+            user.setFavouritePlayer(favouritePlayer);
+            user.setFavouritePosition(favouritePosition);
+            return user;
+        }
+    }
+
     public record LoginRequest(String login, String password) {
+    }
+
+    public record ForgotPasswordRequest(String email) {
+    }
+
+    public record ResetPasswordRequest(
+            String email,
+            String code,
+            String newPassword) {
     }
 }

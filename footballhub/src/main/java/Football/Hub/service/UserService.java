@@ -4,7 +4,10 @@ import Football.Hub.model.User;
 import Football.Hub.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 @Service
@@ -14,7 +17,10 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
     private static final Pattern EMAIL_PATTERN =
-            Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+            Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$");
+
+    private static final Pattern USERNAME_PATTERN =
+            Pattern.compile("^[A-Za-z0-9_]{3,20}$");
 
     public UserService(
             UserRepository userRepository,
@@ -24,56 +30,59 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @Transactional
     public User register(User user) {
 
         if (user.getUsername() == null ||
-                user.getUsername().isBlank()) {
+                !USERNAME_PATTERN.matcher(user.getUsername().trim()).matches()) {
             throw new IllegalArgumentException(
-                    "Username is required.");
+                    "Username must be 3–20 characters and contain only letters, numbers or underscores."
+            );
         }
 
-        if (user.getEmail() == null ||
-                user.getEmail().isBlank()) {
-            throw new IllegalArgumentException(
-                    "Email is required.");
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new IllegalArgumentException("Email is required.");
         }
 
-        String email = user.getEmail().trim();
+        String email = user.getEmail().trim().toLowerCase(Locale.ROOT);
 
-        if (!EMAIL_PATTERN.matcher(email).matches()) {
+        if (email.length() > 254 ||
+                !EMAIL_PATTERN.matcher(email).matches()) {
             throw new IllegalArgumentException(
-                    "Please enter a valid email address.");
+                    "Please enter a valid email address."
+            );
         }
 
-        if (user.getPassword() == null ||
-                user.getPassword().isBlank()) {
-            throw new IllegalArgumentException(
-                    "Password is required.");
+        String password = user.getPassword();
+        if (password == null || password.isBlank()) {
+            throw new IllegalArgumentException("Password is required.");
         }
 
-        if (user.getAge() == null || user.getAge() < 13) {
+        int passwordBytes = password.getBytes(StandardCharsets.UTF_8).length;
+        if (password.length() < 8 || passwordBytes > 72) {
             throw new IllegalArgumentException(
-                    "You must be at least 13 years old.");
+                    "Password must be at least 8 characters and no more than 72 bytes."
+            );
+        }
+
+        if (user.getAge() == null || user.getAge() < 13 || user.getAge() > 120) {
+            throw new IllegalArgumentException(
+                    "You must be between 13 and 120 years old."
+            );
         }
 
         user.setUsername(user.getUsername().trim());
         user.setEmail(email);
 
-        if (userRepository.existsByUsernameIgnoreCase(
-                user.getUsername())) {
-            throw new IllegalArgumentException(
-                    "Username is already taken.");
+        if (userRepository.existsByUsernameIgnoreCase(user.getUsername())) {
+            throw new IllegalArgumentException("Username is already taken.");
         }
 
-        if (userRepository.existsByEmailIgnoreCase(
-                user.getEmail())) {
-            throw new IllegalArgumentException(
-                    "Email is already registered.");
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new IllegalArgumentException("Email is already registered.");
         }
 
-        user.setPassword(
-                passwordEncoder.encode(user.getPassword()));
-
+        user.setPassword(passwordEncoder.encode(password));
         return userRepository.save(user);
     }
 
@@ -82,7 +91,8 @@ public class UserService {
         if (login == null || login.isBlank() ||
                 password == null || password.isBlank()) {
             throw new IllegalArgumentException(
-                    "Username/email and password are required.");
+                    "Username/email and password are required."
+            );
         }
 
         User user = userRepository
@@ -91,12 +101,11 @@ public class UserService {
                         userRepository.findByEmailIgnoreCase(login.trim())
                                 .orElseThrow(() ->
                                         new IllegalArgumentException(
-                                                "Invalid login details.")));
+                                                "Invalid login details."
+                                        )));
 
-        if (!passwordEncoder.matches(
-                password, user.getPassword())) {
-            throw new IllegalArgumentException(
-                    "Invalid login details.");
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new IllegalArgumentException("Invalid login details.");
         }
 
         return user;
@@ -106,8 +115,7 @@ public class UserService {
 
         return userRepository.findById(id)
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "User not found."));
+                        new IllegalArgumentException("User not found."));
     }
 
     public User updateProfile(Long id, User updates) {

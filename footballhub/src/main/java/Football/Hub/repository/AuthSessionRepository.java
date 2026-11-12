@@ -14,4 +14,6 @@ public interface AuthSessionRepository
             LocalDateTime currentTime);
 
     void deleteByTokenHash(String tokenHash);
+
+    void deleteByUserId(Long userId);
 }

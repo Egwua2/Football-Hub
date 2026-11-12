@@ -1,8 +1,9 @@
-name: Squad Battle build checks
+name: Account security and build checks
 
 on:
   push:
     branches:
+      - email-otp-validation
       - refurbish-squad-battle-voting
   pull_request:
     branches:
@@ -36,7 +37,7 @@ jobs:
         run: npm run build
 
   backend:
-    name: Backend Maven build and MySQL startup
+    name: Backend MySQL 8.4 and email account-flow tests
     runs-on: ubuntu-latest
     services:
       mysql:
@@ -51,6 +52,11 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=12
+      mailpit:
+        image: axllent/mailpit:v1.32.0
+        ports:
+          - 1025:1025
+          - 8025:8025
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -66,20 +72,42 @@ jobs:
         working-directory: footballhub
         run: bash ./mvnw -B -DskipTests package
 
-      - name: Start backend against MySQL 8.4 and verify schema initialization
+      - name: Start backend against MySQL and Mailpit
         working-directory: footballhub
         env:
           SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/footballhub_test
           SPRING_DATASOURCE_USERNAME: root
           SPRING_DATASOURCE_PASSWORD: root
           SPRING_JPA_HIBERNATE_DDL_AUTO: update
+          SPRING_MAIL_HOST: 127.0.0.1
+          SPRING_MAIL_PORT: 1025
+          SPRING_MAIL_SMTP_AUTH: "false"
+          SPRING_MAIL_SMTP_STARTTLS: "false"
+          APP_EMAIL_ENABLED: "true"
+          APP_EMAIL_FROM: no-reply@footballhub.test
           PORT: 8080
         run: |
-          java -jar target/footballhub-0.0.1-SNAPSHOT.jar > /tmp/footballhub-mysql.log 2>&1 &
+          set -euo pipefail
+
+          java -jar target/footballhub-0.0.1-SNAPSHOT.jar > /tmp/footballhub-account-flow.log 2>&1 &
           APP_PID=$!
           trap 'kill "$APP_PID" 2>/dev/null || true' EXIT
 
           READY=0
+          for attempt in $(seq 1 90); do
+            if curl --silent --fail http://127.0.0.1:8025/api/v1/info > /dev/null; then
+              MAILPIT_READY=1
+              break
+            fi
+            MAILPIT_READY=0
+            sleep 1
+          done
+
+          if [ "$MAILPIT_READY" -ne 1 ]; then
+            echo "Mailpit did not become ready."
+            exit 1
+          fi
+
           for attempt in $(seq 1 90); do
             if curl --silent --fail http://127.0.0.1:8080/api/health > /tmp/footballhub-health.json; then
               READY=1
@@ -87,7 +115,7 @@ jobs:
             fi
 
             if ! kill -0 "$APP_PID" 2>/dev/null; then
-              cat /tmp/footballhub-mysql.log
+              cat /tmp/footballhub-account-flow.log
               exit 1
             fi
 
@@ -95,11 +123,114 @@ jobs:
           done
 
           if [ "$READY" -ne 1 ]; then
-            cat /tmp/footballhub-mysql.log
+            cat /tmp/footballhub-account-flow.log
             echo "Backend did not become healthy against MySQL 8.4."
             exit 1
           fi
 
           grep -q '"status":"ok"' /tmp/footballhub-health.json
-          grep -q 'Initialized JPA EntityManagerFactory' /tmp/footballhub-mysql.log
-          echo "Backend health and Hibernate schema initialization passed on MySQL 8.4."
+          grep -q 'Initialized JPA EntityManagerFactory' /tmp/footballhub-account-flow.log
+
+          get_latest_code() {
+            local message_id message_text code
+
+            message_id=$(curl --silent --show-error --fail "http://127.0.0.1:8025/api/v1/messages?limit=10" | jq -r '.messages[0].ID // empty')
+            if [ -z "$message_id" ]; then
+              echo "No email was captured by Mailpit." >&2
+              return 1
+            fi
+
+            message_text=$(curl --silent --show-error --fail "http://127.0.0.1:8025/api/v1/message/$message_id" | jq -r '.Text // ""')
+            code=$(printf '%s' "$message_text" | grep -oE '[0-9]{6}' | head -n 1 || true)
+
+            if [ -z "$code" ]; then
+              echo "Could not extract the six-digit code from the latest email." >&2
+              return 1
+            fi
+
+            printf '%s' "$code"
+          }
+
+          API=http://127.0.0.1:8080/api
+          EMAIL=otp-test@example.test
+          USERNAME=otp_test_user
+          OLD_PASSWORD=FootballHub123!
+          NEW_PASSWORD=NewFootballHub456!
+
+          echo "Testing signup: account must be created without a session."
+          signup=$(curl --silent --show-error --fail -X POST "$API/users/signup" \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"$USERNAME\",\"email\":\"$EMAIL\",\"password\":\"$OLD_PASSWORD\",\"age\":22}")
+          echo "$signup" | jq -e '.verificationRequired == true and .email == "otp-test@example.test"'
+          if echo "$signup" | jq -e 'has("token")' > /dev/null; then
+            echo "Signup issued a session before email verification."
+            exit 1
+          fi
+
+          echo "Testing login is blocked before email verification."
+          login_status=$(curl --silent --output /tmp/footballhub-unverified-login.json --write-out '%{http_code}' \
+            -X POST "$API/users/login" -H "Content-Type: application/json" \
+            -d "{\"login\":\"$USERNAME\",\"password\":\"$OLD_PASSWORD\"}")
+          test "$login_status" = "403"
+          jq -e '.code == "EMAIL_NOT_VERIFIED"' /tmp/footballhub-unverified-login.json
+
+          echo "Testing OTP resend cooldown."
+          resend_status=$(curl --silent --output /tmp/footballhub-resend.json --write-out '%{http_code}' \
+            -X POST "$API/users/resend-verification" -H "Content-Type: application/json" \
+            -d "{\"email\":\"$EMAIL\"}")
+          test "$resend_status" = "429"
+
+          echo "Testing email OTP verification."
+          verification_code=$(get_latest_code)
+          verified=$(curl --silent --show-error --fail -X POST "$API/users/verify-email" \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"$EMAIL\",\"code\":\"$verification_code\"}")
+          token=$(echo "$verified" | jq -r '.token')
+          test -n "$token"
+          test "$token" != "null"
+
+          echo "Testing verified account can log in."
+          logged_in=$(curl --silent --show-error --fail -X POST "$API/users/login" \
+            -H "Content-Type: application/json" \
+            -d "{\"login\":\"$USERNAME\",\"password\":\"$OLD_PASSWORD\"}")
+          old_token=$(echo "$logged_in" | jq -r '.token')
+          test -n "$old_token"
+          test "$old_token" != "null"
+
+          echo "Testing repeated verification cannot create another session."
+          repeated_status=$(curl --silent --output /tmp/footballhub-repeat-verify.json --write-out '%{http_code}' \
+            -X POST "$API/users/verify-email" -H "Content-Type: application/json" \
+            -d "{\"email\":\"$EMAIL\",\"code\":\"000000\"}")
+          test "$repeated_status" = "400"
+
+          echo "Testing forgot-password request and email delivery."
+          forgot=$(curl --silent --show-error --fail -X POST "$API/users/forgot-password" \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"$EMAIL\"}")
+          echo "$forgot" | jq -e '.message | contains("If an account exists")'
+
+          echo "Testing password reset."
+          reset_code=$(get_latest_code)
+          reset=$(curl --silent --show-error --fail -X POST "$API/users/reset-password" \
+            -H "Content-Type: application/json" \
+            -d "{\"email\":\"$EMAIL\",\"code\":\"$reset_code\",\"newPassword\":\"$NEW_PASSWORD\"}")
+          echo "$reset" | jq -e '.message | contains("password has been reset")'
+
+          echo "Testing password reset invalidates existing sessions."
+          old_session_status=$(curl --silent --output /tmp/footballhub-old-session.json --write-out '%{http_code}' \
+            "$API/users/me" -H "Authorization: Bearer $old_token")
+          test "$old_session_status" = "401"
+
+          echo "Testing old password no longer works."
+          old_password_status=$(curl --silent --output /tmp/footballhub-old-password.json --write-out '%{http_code}' \
+            -X POST "$API/users/login" -H "Content-Type: application/json" \
+            -d "{\"login\":\"$USERNAME\",\"password\":\"$OLD_PASSWORD\"}")
+          test "$old_password_status" = "400"
+
+          echo "Testing new password works."
+          new_login=$(curl --silent --show-error --fail -X POST "$API/users/login" \
+            -H "Content-Type: application/json" \
+            -d "{\"login\":\"$USERNAME\",\"password\":\"$NEW_PASSWORD\"}")
+          echo "$new_login" | jq -e '.token != null and .user.email == "otp-test@example.test"'
+
+          echo "All signup OTP, login, forgot-password, reset, and session-revocation tests passed."

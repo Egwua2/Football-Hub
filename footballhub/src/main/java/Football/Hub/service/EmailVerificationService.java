@@ -145,7 +145,9 @@ public class EmailVerificationService {
                 ));
 
         if (user.isEmailVerified()) {
-            return user;
+            throw new InvalidVerificationCodeException(
+                    "This email address has already been verified. Please log in."
+            );
         }
 
         EmailVerificationCode verification =

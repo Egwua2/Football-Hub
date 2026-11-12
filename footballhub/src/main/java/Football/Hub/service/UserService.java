@@ -18,7 +18,7 @@ public class UserService {
     private final EmailVerificationService emailVerificationService;
 
     private static final Pattern EMAIL_PATTERN =
-            Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\\\.[A-Za-z]{2,}$");
+            Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$");
 
     private static final Pattern USERNAME_PATTERN =
             Pattern.compile("^[A-Za-z0-9_]{3,20}$");

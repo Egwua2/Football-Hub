@@ -5,6 +5,7 @@ import Football.Hub.model.User;
 import Football.Hub.service.AuthSessionService;
 import Football.Hub.service.EmailNotVerifiedException;
 import Football.Hub.service.EmailVerificationService;
+import Football.Hub.service.PasswordResetService;
 import Football.Hub.service.UserService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -20,12 +21,15 @@ public class UserController {
 
     private final UserService userService;
     private final AuthSessionService authSessionService;
+    private final PasswordResetService passwordResetService;
 
     public UserController(
             UserService userService,
-            AuthSessionService authSessionService) {
+            AuthSessionService authSessionService,
+            PasswordResetService passwordResetService) {
         this.userService = userService;
         this.authSessionService = authSessionService;
+        this.passwordResetService = passwordResetService;
     }
 
     @PostMapping("/signup")
@@ -105,6 +109,46 @@ public class UserController {
                     "code", "EMAIL_NOT_VERIFIED",
                     "message", e.getMessage(),
                     "email", e.getEmail()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(
+            @RequestBody ForgotPasswordRequest request) {
+        try {
+            passwordResetService.requestReset(request.email());
+
+            return ResponseEntity.ok(Map.of(
+                    "message",
+                    "If an account exists for that email, a password reset code will be sent."
+            ));
+        } catch (EmailVerificationService.RateLimitException e) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(Map.of("message", e.getMessage()));
+        } catch (EmailVerificationService.EmailDeliveryDisabledException |
+                 EmailVerificationService.EmailDeliveryException e) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(
+            @RequestBody ResetPasswordRequest request) {
+        try {
+            passwordResetService.resetPassword(
+                    request.email(),
+                    request.code(),
+                    request.newPassword()
+            );
+
+            return ResponseEntity.ok(Map.of(
+                    "message",
+                    "Your password has been reset. Please log in with your new password."
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
@@ -222,5 +266,14 @@ public class UserController {
     }
 
     public record ResendVerificationRequest(String email) {
+    }
+
+    public record ForgotPasswordRequest(String email) {
+    }
+
+    public record ResetPasswordRequest(
+            String email,
+            String code,
+            String newPassword) {
     }
 }

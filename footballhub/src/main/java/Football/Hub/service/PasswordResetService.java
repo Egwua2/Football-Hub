@@ -56,7 +56,7 @@ public class PasswordResetService {
     @Transactional
     public void requestReset(String email) {
         if (!emailEnabled) {
-            throw new EmailVerificationService.EmailDeliveryDisabledException(
+            throw new EmailDeliveryDisabledException(
                     "Password reset email is not configured yet. Please try again later."
             );
         }
@@ -67,7 +67,6 @@ public class PasswordResetService {
 
         User user = userRepository.findByEmailIgnoreCase(
                         email.trim().toLowerCase(Locale.ROOT))
-                .filter(User::isEmailVerified)
                 .orElse(null);
 
         // Always return the same API response whether the account exists or not.
@@ -90,7 +89,7 @@ public class PasswordResetService {
         LocalDateTime lastSentAt = reset.getLastSentAt();
         if (lastSentAt != null &&
                 lastSentAt.plusSeconds(RESEND_COOLDOWN_SECONDS).isAfter(now)) {
-            throw new EmailVerificationService.RateLimitException(
+            throw new RateLimitException(
                     "Please wait a minute before requesting another reset code."
             );
         }
@@ -105,7 +104,7 @@ public class PasswordResetService {
         }
 
         if (sendCount >= MAX_SENDS_PER_HOUR) {
-            throw new EmailVerificationService.RateLimitException(
+            throw new RateLimitException(
                     "You have requested too many reset codes. Please try again in an hour."
             );
         }
@@ -140,20 +139,19 @@ public class PasswordResetService {
         try {
             mailSender.send(message);
         } catch (MailException e) {
-            throw new EmailVerificationService.EmailDeliveryException(
+            throw new EmailDeliveryException(
                     "We could not send the password reset email. Please try again later.",
                     e
             );
         }
     }
 
-    @Transactional(noRollbackFor =
-            EmailVerificationService.InvalidVerificationCodeException.class)
+    @Transactional(noRollbackFor = InvalidResetCodeException.class)
     public void resetPassword(String email, String submittedCode, String newPassword) {
         if (email == null || email.isBlank() ||
                 submittedCode == null ||
                 !submittedCode.matches("\\d{6}")) {
-            throw new EmailVerificationService.InvalidVerificationCodeException(
+            throw new InvalidResetCodeException(
                     "The reset code is invalid or has expired."
             );
         }
@@ -162,16 +160,15 @@ public class PasswordResetService {
 
         User user = userRepository.findByEmailIgnoreCase(
                         email.trim().toLowerCase(Locale.ROOT))
-                .filter(User::isEmailVerified)
                 .orElseThrow(() ->
-                        new EmailVerificationService.InvalidVerificationCodeException(
+                        new InvalidResetCodeException(
                                 "The reset code is invalid or has expired."
                         ));
 
         PasswordResetCode reset =
                 codeRepository.findByUserIdForUpdate(user.getId())
                         .orElseThrow(() ->
-                                new EmailVerificationService.InvalidVerificationCodeException(
+                                new InvalidResetCodeException(
                                         "The reset code is invalid or has expired. Request a new one."
                                 ));
 
@@ -180,13 +177,13 @@ public class PasswordResetService {
         if (reset.getExpiresAt() == null ||
                 !reset.getExpiresAt().isAfter(now)) {
             codeRepository.delete(reset);
-            throw new EmailVerificationService.InvalidVerificationCodeException(
+            throw new InvalidResetCodeException(
                     "This reset code has expired. Request a new one."
             );
         }
 
         if (reset.getFailedAttempts() >= MAX_CODE_ATTEMPTS) {
-            throw new EmailVerificationService.InvalidVerificationCodeException(
+            throw new InvalidResetCodeException(
                     "Too many incorrect attempts. Request a new reset code."
             );
         }
@@ -195,7 +192,7 @@ public class PasswordResetService {
             reset.setFailedAttempts(reset.getFailedAttempts() + 1);
             codeRepository.save(reset);
 
-            throw new EmailVerificationService.InvalidVerificationCodeException(
+            throw new InvalidResetCodeException(
                     reset.getFailedAttempts() >= MAX_CODE_ATTEMPTS
                             ? "Too many incorrect attempts. Request a new reset code."
                             : "That reset code is incorrect. Please check it and try again."
@@ -215,6 +212,30 @@ public class PasswordResetService {
             throw new IllegalArgumentException(
                     "Password must be at least 8 characters and no more than 72 bytes."
             );
+        }
+    }
+
+    public static class RateLimitException extends RuntimeException {
+        public RateLimitException(String message) {
+            super(message);
+        }
+    }
+
+    public static class EmailDeliveryDisabledException extends RuntimeException {
+        public EmailDeliveryDisabledException(String message) {
+            super(message);
+        }
+    }
+
+    public static class EmailDeliveryException extends RuntimeException {
+        public EmailDeliveryException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    public static class InvalidResetCodeException extends IllegalArgumentException {
+        public InvalidResetCodeException(String message) {
+            super(message);
         }
     }
 }

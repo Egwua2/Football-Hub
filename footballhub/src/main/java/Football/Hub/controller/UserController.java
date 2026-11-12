@@ -12,12 +12,20 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
+
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(UserController.class);
+
+    private static final String PASSWORD_RESET_MESSAGE =
+            "If an account exists for that email, a password reset code will be sent.";
 
     private final UserService userService;
     private final AuthSessionService authSessionService;
@@ -122,15 +130,15 @@ public class UserController {
         try {
             passwordResetService.requestReset(request.email());
 
-            return ResponseEntity.ok(Map.of(
-                    "message",
-                    "If an account exists for that email, a password reset code will be sent."
-            ));
+            return ResponseEntity.ok(Map.of("message", PASSWORD_RESET_MESSAGE));
         } catch (EmailVerificationService.RateLimitException e) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body(Map.of("message", e.getMessage()));
-        } catch (EmailVerificationService.EmailDeliveryDisabledException |
-                 EmailVerificationService.EmailDeliveryException e) {
+            // Keep responses identical so the endpoint cannot reveal whether
+            // an email belongs to an account or has an active reset request.
+            return ResponseEntity.ok(Map.of("message", PASSWORD_RESET_MESSAGE));
+        } catch (EmailVerificationService.EmailDeliveryException e) {
+            LOGGER.warn("A password reset email could not be delivered.");
+            return ResponseEntity.ok(Map.of("message", PASSWORD_RESET_MESSAGE));
+        } catch (EmailVerificationService.EmailDeliveryDisabledException e) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("message", e.getMessage()));
         }

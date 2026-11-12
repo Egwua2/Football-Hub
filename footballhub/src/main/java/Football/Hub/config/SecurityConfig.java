@@ -92,7 +92,9 @@ public class SecurityConfig {
                                 "/api/users/signup",
                                 "/api/users/login",
                                 "/api/users/verify-email",
-                                "/api/users/resend-verification"
+                                "/api/users/resend-verification",
+                                "/api/users/forgot-password",
+                                "/api/users/reset-password"
                         ).permitAll()
                         .requestMatchers(
                                 HttpMethod.GET,

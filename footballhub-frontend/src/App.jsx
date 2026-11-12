@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
-import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import Profile from "./pages/Profile";
 import Home from "./pages/Home";
@@ -74,7 +73,6 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
 
             <Route

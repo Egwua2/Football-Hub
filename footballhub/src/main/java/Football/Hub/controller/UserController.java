@@ -3,17 +3,15 @@ package Football.Hub.controller;
 import Football.Hub.dto.UserResponse;
 import Football.Hub.model.User;
 import Football.Hub.service.AuthSessionService;
-import Football.Hub.service.EmailNotVerifiedException;
-import Football.Hub.service.EmailVerificationService;
 import Football.Hub.service.PasswordResetService;
 import Football.Hub.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
@@ -44,59 +42,9 @@ public class UserController {
     public ResponseEntity<?> signup(@RequestBody SignupRequest request) {
         try {
             User savedUser = userService.register(request.toUser());
-
-            return ResponseEntity.accepted().body(Map.of(
-                    "verificationRequired", true,
-                    "email", savedUser.getEmail(),
-                    "message", "A verification code has been sent to your email address."
-            ));
-        } catch (EmailVerificationService.RateLimitException e) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body(Map.of("message", e.getMessage()));
-        } catch (EmailVerificationService.EmailDeliveryDisabledException |
-                 EmailVerificationService.EmailDeliveryException e) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(Map.of("message", e.getMessage()));
+            return ResponseEntity.ok(authSessionService.createSession(savedUser));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
-                    .body(Map.of("message", e.getMessage()));
-        }
-    }
-
-    @PostMapping("/verify-email")
-    public ResponseEntity<?> verifyEmail(
-            @RequestBody VerifyEmailRequest request) {
-        try {
-            User user = userService.verifyEmail(
-                    request.email(),
-                    request.code()
-            );
-
-            return ResponseEntity.ok(authSessionService.createSession(user));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("message", e.getMessage()));
-        }
-    }
-
-    @PostMapping("/resend-verification")
-    public ResponseEntity<?> resendVerification(
-            @RequestBody ResendVerificationRequest request) {
-        try {
-            userService.resendVerification(request.email());
-
-            // Keep the response generic so this endpoint cannot be used
-            // to discover which email addresses have accounts.
-            return ResponseEntity.ok(Map.of(
-                    "message",
-                    "If this address needs verification, a new code will be sent."
-            ));
-        } catch (EmailVerificationService.RateLimitException e) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body(Map.of("message", e.getMessage()));
-        } catch (EmailVerificationService.EmailDeliveryDisabledException |
-                 EmailVerificationService.EmailDeliveryException e) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("message", e.getMessage()));
         }
     }
@@ -109,15 +57,7 @@ public class UserController {
                     request.password()
             );
 
-            return ResponseEntity.ok(
-                    authSessionService.createSession(user)
-            );
-        } catch (EmailNotVerifiedException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
-                    "code", "EMAIL_NOT_VERIFIED",
-                    "message", e.getMessage(),
-                    "email", e.getEmail()
-            ));
+            return ResponseEntity.ok(authSessionService.createSession(user));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(Map.of("message", e.getMessage()));
@@ -129,16 +69,15 @@ public class UserController {
             @RequestBody ForgotPasswordRequest request) {
         try {
             passwordResetService.requestReset(request.email());
-
             return ResponseEntity.ok(Map.of("message", PASSWORD_RESET_MESSAGE));
-        } catch (EmailVerificationService.RateLimitException e) {
-            // Keep responses identical so the endpoint cannot reveal whether
-            // an email belongs to an account or has an active reset request.
+        } catch (PasswordResetService.RateLimitException e) {
+            // Keep the response identical so this endpoint does not reveal
+            // whether an email address belongs to an account.
             return ResponseEntity.ok(Map.of("message", PASSWORD_RESET_MESSAGE));
-        } catch (EmailVerificationService.EmailDeliveryException e) {
+        } catch (PasswordResetService.EmailDeliveryException e) {
             LOGGER.warn("A password reset email could not be delivered.");
             return ResponseEntity.ok(Map.of("message", PASSWORD_RESET_MESSAGE));
-        } catch (EmailVerificationService.EmailDeliveryDisabledException e) {
+        } catch (PasswordResetService.EmailDeliveryDisabledException e) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("message", e.getMessage()));
         }
@@ -268,12 +207,6 @@ public class UserController {
     }
 
     public record LoginRequest(String login, String password) {
-    }
-
-    public record VerifyEmailRequest(String email, String code) {
-    }
-
-    public record ResendVerificationRequest(String email) {
     }
 
     public record ForgotPasswordRequest(String email) {

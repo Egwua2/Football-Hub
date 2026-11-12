@@ -6,17 +6,19 @@ import Football.Hub.repository.AuthSessionRepository;
 import Football.Hub.repository.PasswordResetCodeRepository;
 import Football.Hub.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 public class PasswordResetService {
@@ -27,35 +29,48 @@ public class PasswordResetService {
     private static final int MAX_SENDS_PER_HOUR = 5;
     private static final int CODE_EXPIRY_MINUTES = 10;
     private static final int RESEND_COOLDOWN_SECONDS = 60;
+    private static final String EMAILJS_SEND_URL =
+            "https://api.emailjs.com/api/v1.0/email/send";
 
     private final PasswordResetCodeRepository codeRepository;
     private final UserRepository userRepository;
     private final AuthSessionRepository authSessionRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JavaMailSender mailSender;
+    private final RestClient emailClient;
 
     @Value("${app.email.enabled:false}")
     private boolean emailEnabled;
 
-    @Value("${app.email.from:no-reply@footballhub.local}")
-    private String fromAddress;
+    @Value("${app.email.emailjs.service-id:}")
+    private String emailJsServiceId;
+
+    @Value("${app.email.emailjs.template-id:}")
+    private String emailJsTemplateId;
+
+    @Value("${app.email.emailjs.public-key:}")
+    private String emailJsPublicKey;
+
+    @Value("${app.email.emailjs.private-key:}")
+    private String emailJsPrivateKey;
 
     public PasswordResetService(
             PasswordResetCodeRepository codeRepository,
             UserRepository userRepository,
             AuthSessionRepository authSessionRepository,
-            PasswordEncoder passwordEncoder,
-            JavaMailSender mailSender) {
+            PasswordEncoder passwordEncoder) {
         this.codeRepository = codeRepository;
         this.userRepository = userRepository;
         this.authSessionRepository = authSessionRepository;
         this.passwordEncoder = passwordEncoder;
-        this.mailSender = mailSender;
+        this.emailClient = RestClient.create();
     }
 
     @Transactional
     public void requestReset(String email) {
-        if (!emailEnabled) {
+        if (!emailEnabled ||
+                isBlank(emailJsServiceId) ||
+                isBlank(emailJsTemplateId) ||
+                isBlank(emailJsPublicKey)) {
             throw new EmailDeliveryDisabledException(
                     "Password reset email is not configured yet. Please try again later."
             );
@@ -124,21 +139,31 @@ public class PasswordResetService {
 
         codeRepository.save(reset);
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromAddress);
-        message.setTo(user.getEmail());
-        message.setSubject("Reset your Football Hub password");
-        message.setText(
-                "Hi " + user.getUsername() + ",\n\n" +
-                "Your Football Hub password reset code is: " + code + "\n\n" +
-                "This code expires in " + CODE_EXPIRY_MINUTES +
-                " minutes. If you did not request a password reset, you can ignore this email.\n\n" +
-                "For your security, never share this code with anyone."
+        Map<String, Object> templateParams = Map.of(
+                "to_email", user.getEmail(),
+                "username", user.getUsername(),
+                "reset_code", code,
+                "expiry_minutes", CODE_EXPIRY_MINUTES
         );
 
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("service_id", emailJsServiceId);
+        requestBody.put("template_id", emailJsTemplateId);
+        requestBody.put("user_id", emailJsPublicKey);
+        requestBody.put("template_params", templateParams);
+
+        if (!isBlank(emailJsPrivateKey)) {
+            requestBody.put("accessToken", emailJsPrivateKey);
+        }
+
         try {
-            mailSender.send(message);
-        } catch (MailException e) {
+            emailClient.post()
+                    .uri(EMAILJS_SEND_URL)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(requestBody)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientException e) {
             throw new EmailDeliveryException(
                     "We could not send the password reset email. Please try again later.",
                     e
@@ -204,6 +229,10 @@ public class PasswordResetService {
 
         codeRepository.delete(reset);
         authSessionRepository.deleteByUserId(user.getId());
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private void validateNewPassword(String password) {

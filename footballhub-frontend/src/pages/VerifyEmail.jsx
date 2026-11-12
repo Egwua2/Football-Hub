@@ -26,7 +26,9 @@ function VerifyEmail() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
-  const [resendIn, setResendIn] = useState(60);
+  const [resendIn, setResendIn] = useState(
+    location.state?.justSent ? 60 : 0
+  );
 
   useEffect(() => {
     if (resendIn <= 0) return undefined;

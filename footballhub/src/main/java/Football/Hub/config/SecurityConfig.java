@@ -90,7 +90,9 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/users/signup",
-                                "/api/users/login"
+                                "/api/users/login",
+                                "/api/users/verify-email",
+                                "/api/users/resend-verification"
                         ).permitAll()
                         .requestMatchers(
                                 HttpMethod.GET,

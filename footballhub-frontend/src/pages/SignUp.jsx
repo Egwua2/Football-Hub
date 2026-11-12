@@ -42,8 +42,8 @@ function SignUp() {
     e.preventDefault();
     setError("");
 
-    if (!form.username.trim()) {
-      setError("Username is required.");
+    if (!/^[A-Za-z0-9_]{3,20}$/.test(form.username.trim())) {
+      setError("Username must be 3–20 characters and use only letters, numbers or underscores.");
       return;
     }
 
@@ -61,8 +61,13 @@ function SignUp() {
       return;
     }
 
-    if (!form.password.trim()) {
-      setError("Password is required.");
+    if (form.password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
+
+    if (new TextEncoder().encode(form.password).length > 72) {
+      setError("Password is too long. Use 72 bytes or fewer.");
       return;
     }
 
@@ -115,13 +120,13 @@ function SignUp() {
         );
       }
 
-      if (!data?.token || !data?.user?.id) {
+      if (!data?.verificationRequired || !data?.email) {
         throw new Error("The server returned an unexpected signup response.");
       }
 
-      localStorage.setItem("footballHubToken", data.token);
-      localStorage.setItem("footballHubUser", JSON.stringify(data.user));
-      navigate("/");
+      navigate("/verify-email", {
+        state: { email: data.email },
+      });
     } catch (err) {
       setError(
         err.message === "Failed to fetch"

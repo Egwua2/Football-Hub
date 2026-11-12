@@ -1161,34 +1161,78 @@ function SquadBattle() {
 
             {status === "RESULTS" && results?.rankings?.length > 0 && (
               <div className="results">
-                <h3>Final Squad Battle Results</h3>
-
-                {results.rankings.map((result) => (
-                  <div className="result-row" key={result.participantId}>
-                    <strong>#{result.rank}</strong>
-                    <span>{result.playerName}</span>
-                    <b>{result.points} points</b>
-                  </div>
-                ))}
-
-                <h3>Position Winners</h3>
-
-                {results.positions?.map((position) => (
-                  <div className="result-row" key={position.positionSlot}>
-                    <strong>{position.positionLabel}</strong>
-                    <span>
-                      {position.winners?.map((winner) => (
-                        <span key={winner.playerId}>
-                          {winner.playerName}
-                          {winner.owners?.length
-                            ? ` — ${winner.owners.join(", ")}`
-                            : ""}
-                        </span>
-                      ))}
+                <section className="results-section rankings-section">
+                  <div className="results-heading">
+                    <div>
+                      <span className="results-eyebrow">FINAL TABLE</span>
+                      <h3>Final Squad Battle Results</h3>
+                    </div>
+                    <span className="results-summary">
+                      {results.rankings.length} participants
                     </span>
-                    <b>{position.automatic ? "Shared pick" : "Voted"}</b>
                   </div>
-                ))}
+
+                  <div className="rankings-list">
+                    {results.rankings.map((result) => (
+                      <div
+                        className={`ranking-row ${result.rank === 1 ? "top-rank" : ""}`}
+                        key={result.participantId}
+                      >
+                        <div className="ranking-number">
+                          <strong>#{result.rank}</strong>
+                        </div>
+                        <span className="ranking-name">{result.playerName}</span>
+                        <div className="ranking-score">
+                          <strong>{result.points}</strong>
+                          <small>{result.points === 1 ? "point" : "points"}</small>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="results-section position-winners-section">
+                  <div className="results-heading">
+                    <div>
+                      <span className="results-eyebrow">ROUND BREAKDOWN</span>
+                      <h3>Position Winners</h3>
+                    </div>
+                    <span className="results-summary">
+                      {results.positions?.length || 0} positions
+                    </span>
+                  </div>
+
+                  <div className="position-winners-list">
+                    {results.positions?.map((position) => (
+                      <div className="position-winner-row" key={position.positionSlot}>
+                        <strong className="position-name">
+                          {position.positionLabel}
+                        </strong>
+
+                        <div className="position-winners">
+                          {position.winners?.map((winner) => (
+                            <div className="position-winner" key={winner.playerId}>
+                              <strong>{winner.playerName}</strong>
+                              {winner.owners?.length > 0 && (
+                                <small>
+                                  Selected by {winner.owners.join(", ")}
+                                </small>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="position-outcome">
+                          <span
+                            className={`position-outcome-badge ${position.automatic ? "shared" : "voted"}`}
+                          >
+                            {position.automatic ? "Shared pick" : "Voted"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
               </div>
             )}
 

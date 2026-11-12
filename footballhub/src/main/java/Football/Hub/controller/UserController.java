@@ -75,7 +75,7 @@ public class UserController {
             // whether an email address belongs to an account.
             return ResponseEntity.ok(Map.of("message", PASSWORD_RESET_MESSAGE));
         } catch (PasswordResetService.EmailDeliveryException e) {
-            LOGGER.warn("A password reset email could not be delivered.");
+            LOGGER.warn("A password reset email could not be delivered: {}", e.getMessage(), e);
             return ResponseEntity.ok(Map.of("message", PASSWORD_RESET_MESSAGE));
         } catch (PasswordResetService.EmailDeliveryDisabledException e) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)

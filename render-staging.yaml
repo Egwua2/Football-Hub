@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: footballhub-squad-battle-staging-api
+    runtime: docker
+    repo: https://github.com/Egwua2/Football-Hub
+    branch: refurbish-squad-battle-voting
+    plan: free
+    region: frankfurt
+    dockerContext: ./footballhub
+    dockerfilePath: ./footballhub/Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: footballhub-squad-battle-staging
+          property: connectionString
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: "update"
+      - key: SPRING_JPA_SHOW_SQL
+        value: "false"
+      - key: SPRING_JPA_FORMAT_SQL
+        value: "false"

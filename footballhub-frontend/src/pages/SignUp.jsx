@@ -120,13 +120,13 @@ function SignUp() {
         );
       }
 
-      if (!data?.verificationRequired || !data?.email) {
+      if (!data?.token || !data?.user?.id) {
         throw new Error("The server returned an unexpected signup response.");
       }
 
-      navigate("/verify-email", {
-        state: { email: data.email, justSent: true },
-      });
+      localStorage.setItem("footballHubToken", data.token);
+      localStorage.setItem("footballHubUser", JSON.stringify(data.user));
+      navigate("/");
     } catch (err) {
       setError(
         err.message === "Failed to fetch"

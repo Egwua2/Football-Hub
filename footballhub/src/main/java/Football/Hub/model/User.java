@@ -32,9 +32,6 @@ public class User {
     private String favouritePosition;
     private String profilePicture;
 
-    @Column(name = "email_verified")
-    private Boolean emailVerified = true;
-
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -154,16 +151,6 @@ public class User {
 
     public void setProfilePicture(String profilePicture) {
         this.profilePicture = profilePicture;
-    }
-
-    public boolean isEmailVerified() {
-        // Existing rows have NULL after this column is added; keep those
-        // accounts active and require verification only for new signups.
-        return !Boolean.FALSE.equals(emailVerified);
-    }
-
-    public void setEmailVerified(boolean emailVerified) {
-        this.emailVerified = emailVerified;
     }
 
     public LocalDateTime getCreatedAt() {

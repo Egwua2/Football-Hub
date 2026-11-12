@@ -125,7 +125,7 @@ function SignUp() {
       }
 
       navigate("/verify-email", {
-        state: { email: data.email },
+        state: { email: data.email, justSent: true },
       });
     } catch (err) {
       setError(

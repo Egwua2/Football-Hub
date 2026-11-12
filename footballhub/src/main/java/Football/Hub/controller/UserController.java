@@ -29,9 +29,9 @@ public class UserController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody User user) {
+    public ResponseEntity<?> signup(@RequestBody SignupRequest request) {
         try {
-            User savedUser = userService.register(user);
+            User savedUser = userService.register(request.toUser());
 
             return ResponseEntity.accepted().body(Map.of(
                     "verificationRequired", true,
@@ -183,6 +183,36 @@ public class UserController {
 
     private Long authenticatedUserId(Authentication authentication) {
         return Long.parseLong(authentication.getName());
+    }
+
+    public record SignupRequest(
+            String username,
+            String email,
+            String password,
+            Integer age,
+            String gender,
+            String firstName,
+            String lastName,
+            String country,
+            String favouriteClub,
+            String favouritePlayer,
+            String favouritePosition) {
+
+        public User toUser() {
+            User user = new User();
+            user.setUsername(username);
+            user.setEmail(email);
+            user.setPassword(password);
+            user.setAge(age);
+            user.setGender(gender);
+            user.setFirstName(firstName);
+            user.setLastName(lastName);
+            user.setCountry(country);
+            user.setFavouriteClub(favouriteClub);
+            user.setFavouritePlayer(favouritePlayer);
+            user.setFavouritePosition(favouritePosition);
+            return user;
+        }
     }
 
     public record LoginRequest(String login, String password) {

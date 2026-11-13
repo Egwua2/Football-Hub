@@ -60,9 +60,9 @@ public class SportsDbService {
                     "Please wait a little and try again.");
         }
 
-        waitForRequestSlot();
-
         try {
+            waitForRequestSlot();
+
             String response = restClient.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/searchplayers.php")

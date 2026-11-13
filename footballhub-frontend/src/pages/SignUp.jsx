@@ -8,6 +8,9 @@ const POSITIONS = [
   "LW", "RW", "CF", "ST",
 ];
 
+const USERNAME_PATTERN = /^(?=.{3,20}$)[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/;
+const EMAIL_PATTERN = /^(?=.{1,254}$)(?=.{1,64}@)[A-Za-z0-9_%+-]+(?:\.[A-Za-z0-9_%+-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$/;
+
 function SignUp() {
   const navigate = useNavigate();
 
@@ -42,14 +45,16 @@ function SignUp() {
     e.preventDefault();
     setError("");
 
-    if (!form.username.trim()) {
-      setError("Username is required.");
+    const username = form.username.trim();
+
+    if (!USERNAME_PATTERN.test(username)) {
+      setError("Username must be 3-20 characters. Use letters, numbers, dots, underscores or hyphens, with no spaces.");
       return;
     }
 
     const email = form.email.trim();
 
-    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
+    if (!EMAIL_PATTERN.test(email)) {
       setError("Please enter a valid email address.");
       return;
     }
@@ -82,7 +87,7 @@ function SignUp() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username: form.username.trim(),
+            username,
             email,
             age,
             password: form.password,

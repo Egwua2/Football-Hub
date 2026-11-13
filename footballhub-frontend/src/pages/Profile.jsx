@@ -8,6 +8,8 @@ const POSITIONS = [
   "LW", "RW", "CF", "ST",
 ];
 
+const USERNAME_PATTERN = /^(?=.{3,20}$)[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/;
+
 function buildFormFromUser(user) {
   return {
     username: user?.username || "",
@@ -98,6 +100,12 @@ function Profile() {
     setSaving(true);
 
     try {
+      const username = form.username.trim();
+
+      if (!USERNAME_PATTERN.test(username)) {
+        throw new Error("Username must be 3-20 characters. Use letters, numbers, dots, underscores or hyphens, with no spaces.");
+      }
+
       const age = form.age === "" ? null : Number(form.age);
 
       if (form.age !== "" && (Number.isNaN(age) || age < 13 || age > 120)) {
@@ -111,7 +119,7 @@ function Profile() {
           Authorization: `Bearer ${localStorage.getItem("footballHubToken") || ""}`,
         },
         body: JSON.stringify({
-          username: form.username.trim(),
+          username,
           age,
           gender: form.gender || null,
           firstName: form.firstName.trim() || null,

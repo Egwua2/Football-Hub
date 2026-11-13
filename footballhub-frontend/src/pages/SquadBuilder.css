@@ -234,6 +234,13 @@
   cursor: not-allowed;
 }
 
+.search-hint {
+  margin: 8px 2px 0;
+  color: #8192a8;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
 .search-results {
   display: flex;
   flex-direction: column;

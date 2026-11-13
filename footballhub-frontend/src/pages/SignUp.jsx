@@ -11,6 +11,8 @@ const POSITIONS = [
 const USERNAME_PATTERN = /^(?=.{3,20}$)[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*$/;
 const EMAIL_PATTERN = /^(?=.{1,254}$)(?=.{1,64}@)[A-Za-z0-9_%+-]+(?:\.[A-Za-z0-9_%+-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$/;
 
+const GMAIL_USERNAME_PATTERN = /^[A-Za-z0-9]+(?:\\.[A-Za-z0-9]+)*$/;
+
 function SignUp() {
   const navigate = useNavigate();
 
@@ -56,6 +58,20 @@ function SignUp() {
 
     if (!EMAIL_PATTERN.test(email)) {
       setError("Please enter a valid email address.");
+      return;
+    }
+
+    const [emailUsername, emailDomain] = email.split("@");
+
+    if (
+      ["gmail.com", "googlemail.com"].includes(emailDomain.toLowerCase()) &&
+      (
+        emailUsername.length < 6 ||
+        emailUsername.length > 30 ||
+        !GMAIL_USERNAME_PATTERN.test(emailUsername)
+      )
+    ) {
+      setError("Gmail usernames must be 6-30 characters and contain only letters, numbers and single periods.");
       return;
     }
 

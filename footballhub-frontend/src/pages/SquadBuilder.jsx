@@ -1220,6 +1220,10 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
               </button>
             </div>
 
+            <p className="search-hint">
+              Try typing the player's full name if the desired player does not appear.
+            </p>
+
             <div className="search-results">
               {players.length === 0 && (
                 <div className="empty-search">
@@ -1293,6 +1297,10 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
                     {managerSearching ? "..." : "Search"}
                   </button>
                 </div>
+
+                <p className="search-hint">
+                  Try typing the player's full name if the desired player does not appear.
+                </p>
 
                 <div className="manager-results search-results">
                   {managerResults.length === 0 ? (

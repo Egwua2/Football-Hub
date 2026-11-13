@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clock, CircleDot, RectangleVertical, ShieldCheck, Trophy, Medal } from "lucide-react";
+import { Clock, CircleDot, ShieldCheck, Trophy, Medal } from "lucide-react";
 import "./GamePages.css";
 
 const FOOTBALLERS = [
@@ -110,17 +110,38 @@ function getOrdinal(number) {
   return `${number}th`;
 }
 
-function WarningCardIcon({ card, size = 16 }) {
+function WarningCard({ card, size = 20 }) {
   const isRed = card === "red";
+  const label = isRed ? "Red card" : "Yellow card";
 
   return (
-    <RectangleVertical
-      size={size}
-      color={isRed ? "#ef5350" : "#f4c542"}
-      fill={isRed ? "rgba(239, 83, 80, 0.18)" : "rgba(244, 197, 66, 0.18)"}
-      strokeWidth={2.2}
-      aria-label={isRed ? "Red card" : "Yellow card"}
+    <span
+      className={`referee-card ${isRed ? "red" : "yellow"}`}
+      style={{
+        width: `${Math.round(size * 0.7)}px`,
+        height: `${size}px`
+      }}
+      role="img"
+      aria-label={label}
+      title={label}
     />
+  );
+}
+
+function GameErrorMessage({ error }) {
+  if (!error) return null;
+
+  return (
+    <div className="game-message error">
+      {typeof error === "object" && error.card ? (
+        <span className="who-am-i-card-message">
+          <WarningCard card={error.card} size={22} />
+          <span>{error.message}</span>
+        </span>
+      ) : (
+        error
+      )}
+    </div>
   );
 }
 
@@ -469,11 +490,10 @@ function FootballWhoAmI() {
       return;
     }
 
-    setError(
-      `Wrong footballer! You received a ${
-        cardReceived === "red" ? "red card" : "yellow card"
-      }.`
-    );
+    setError({
+      message: "Wrong footballer! You received this card.",
+      card: cardReceived
+    });
   }
 
   function moveToNextPlayer(states = game?.playerStates) {
@@ -853,7 +873,7 @@ function FootballWhoAmI() {
 
                     <div className="difficulty-cards">
                       {settings.cards.map((card, index) => (
-                        <span key={index}>{card}</span>
+                        <WarningCard key={index} card={card} size={23} />
                       ))}
                     </div>
                   </button>
@@ -920,7 +940,14 @@ function FootballWhoAmI() {
                 The cards depend on difficulty. A red card eliminates the player.
               </p>
 
-              <div className="card-rule-display"><WarningCardIcon card="yellow" size={18} /> <span>→</span> <WarningCardIcon card="yellow" size={18} /> <span>→</span> <WarningCardIcon card="red" size={18} /></div>
+              <div className="card-rule-display">
+                {DIFFICULTIES[difficulty].cards.map((card, index) => (
+                  <div key={`${card}-${index}`}>
+                    <WarningCard card={card} size={25} />
+                    <small>{getOrdinal(index + 1)} mistake</small>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <button
@@ -931,11 +958,7 @@ function FootballWhoAmI() {
               Start Game
             </button>
 
-            {error && (
-              <div className="game-message error">
-                {error}
-              </div>
-            )}
+            {error && <GameErrorMessage error={error} />}
           </div>
         </section>
       )}
@@ -1066,7 +1089,12 @@ function FootballWhoAmI() {
                       ) : player.wrongGuesses === 0 ? (
                         <><ShieldCheck size={14} /> Clean Sheet</>
                       ) : (
-                        <>{getWarnings(player).map((card, cardIndex) => <WarningCardIcon key={cardIndex} card={card} />)}{player.eliminated ? " · Eliminated" : ""}</>
+                        <span className="warning-card-list">
+                          {getWarnings(player).map((card, cardIndex) => (
+                            <WarningCard key={cardIndex} card={card} size={19} />
+                          ))}
+                          {player.eliminated && <small>Eliminated</small>}
+                        </span>
                       )}
                     </span>
                   </button>
@@ -1114,14 +1142,12 @@ function FootballWhoAmI() {
 
                   <div className="who-am-i-lives">
                     <strong>Warnings:</strong>
-                    <span>
+                    <span className="who-am-i-warning-list">
                       {game.playerStates[guessIndex].wrongGuesses === 0 ? (
-                        <span><ShieldCheck size={15} /> Clean Sheet</span>
+                        <span className="clean-sheet-label"><ShieldCheck size={15} /> Clean Sheet</span>
                       ) : (
                         getWarnings(game.playerStates[guessIndex]).map((card, index) => (
-                          <span key={index}>
-                            <WarningCardIcon card={card} size={15} /> {card === "red" ? "Red Card" : "Yellow Card"}
-                          </span>
+                          <WarningCard key={index} card={card} size={24} />
                         ))
                       )}
                     </span>
@@ -1189,11 +1215,7 @@ function FootballWhoAmI() {
                     Submit Guess
                   </button>
 
-                  {error && (
-                    <div className="game-message error">
-                      {error}
-                    </div>
-                  )}
+                  {error && <GameErrorMessage error={error} />}
                 </div>
               )}
           </div>
@@ -1352,10 +1374,10 @@ function FootballWhoAmI() {
                         letterSpacing: "0.03em",
                         whiteSpace: "nowrap"
                       }}>
-                        {player.correct ? (player.placement <= 3 ? <><Medal size={14} /> {getOrdinal(player.placement).toUpperCase()}</> : getOrdinal(player.placement).toUpperCase()) : player.timedOut ? <><Clock size={14} /> TIME UP</> : <><WarningCardIcon card="red" size={14} /> OUT</>}
+                        {player.correct ? (player.placement <= 3 ? <><Medal size={14} /> {getOrdinal(player.placement).toUpperCase()}</> : getOrdinal(player.placement).toUpperCase()) : player.timedOut ? <><Clock size={14} /> TIME UP</> : <><WarningCard card="red" size={14} /> OUT</>}
                       </span>
                       <strong>{player.playerName}</strong>
-                      <span>{player.correct ? `Finished ${getOrdinal(player.placement)} place` : player.timedOut ? <><Clock size={14} /> Time expired</> : <><WarningCardIcon card="red" size={14} /> Eliminated</>}</span>
+                      <span>{player.correct ? `Finished ${getOrdinal(player.placement)} place` : player.timedOut ? <><Clock size={14} /> Time expired</> : <><WarningCard card="red" size={14} /> Eliminated</>}</span>
                     </div>
                     <div className="final-player-secret">
                       <small>Secret footballer</small>

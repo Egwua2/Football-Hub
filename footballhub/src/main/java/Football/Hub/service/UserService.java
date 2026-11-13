@@ -114,6 +114,18 @@ public class UserService {
 
         User user = getUser(id);
 
+        if (updates.getUsername() == null ||
+                updates.getUsername().isBlank()) {
+            throw new IllegalArgumentException("Username is required.");
+        }
+
+        String username = updates.getUsername().trim();
+
+        if (userRepository.existsByUsernameIgnoreCaseAndIdNot(username, id)) {
+            throw new IllegalArgumentException("Username is already taken.");
+        }
+
+        user.setUsername(username);
         user.setAge(updates.getAge());
         user.setGender(updates.getGender());
         user.setFirstName(updates.getFirstName());

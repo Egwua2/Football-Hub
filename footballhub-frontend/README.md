@@ -1,16 +1,34 @@
-# React + Vite
+# Football Hub Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the React side of Football Hub. It contains the pages, squad builder and football games that people use on the website.
 
-Currently, two official plugins are available:
+The backend is in the `footballhub` folder. It handles the API and connects to the database.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Run the frontend
 
-## React Compiler
+Make sure the backend is running first. Then open a terminal in this folder and run:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+npm run dev
+```
 
-## Expanding the ESLint configuration
+Vite normally opens the website at `http://localhost:5173`.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+When running in development, the frontend connects to the backend at `http://localhost:8080/api`. If your backend is running at a different address, create a `.env.local` file in this folder and add:
+
+```env
+VITE_API_BASE_URL=http://localhost:8080/api
+```
+
+Use your actual backend address if it is not running on your computer.
+
+## Build the frontend
+
+To check that the production build works, run:
+
+```bash
+npm run build
+```
+
+The finished files are placed in the `dist` folder. Vercel uses this build when the site is deployed.

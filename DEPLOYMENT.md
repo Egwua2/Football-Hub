@@ -1,62 +1,79 @@
-# Football Hub deployment
+# Putting Football Hub Online
 
-## Hosting layout
+These are the steps for deploying the project. The frontend and backend are hosted separately, and the backend connects to a managed MySQL database.
 
-- Frontend: Vercel (Vite project in `footballhub-frontend`)
-- API: Render Web Service (Docker, Spring Boot)
-- Database: Managed MySQL. This project remains on MySQL.
+## 1. Database
 
-## 1. Create a MySQL database
+Create a MySQL database with your database provider.
 
-The current backend uses MySQL. Render's free plan does not include private services or persistent disks, so this Blueprint expects an external managed MySQL database.
+Keep these details somewhere safe:
+- Database host
+- Port
+- Database name
+- Username
+- Password
 
-For a small student/demo deployment, Aiven currently offers a free MySQL plan with 1 GB storage and 1 GB RAM. The free tier can be powered off after extended inactivity. Check the provider's current limits before relying on it for a live demo.
+You will need them when setting up the backend. Do not put the real password in this file or commit it to GitHub.
 
-Create a MySQL service in Aiven and note its host, port, database name, username, and password. Do not commit these values to GitHub or paste passwords into chat.
+## 2. Backend on Render
 
-## 2. Create the Render API
+The repository already has a `render.yaml` file for the backend.
 
 1. Open the Render Dashboard.
 2. Choose **New → Blueprint**.
-3. Select `Egwua2/Football-Hub` and branch `main`.
-4. Render reads the root-level `render.yaml` and creates `footballhub-api`.
-5. When prompted, set these environment variables using your managed MySQL connection details:
-   - `SPRING_DATASOURCE_URL`: `jdbc:mysql://YOUR_HOST:YOUR_PORT/YOUR_DATABASE?sslMode=REQUIRED&serverTimezone=UTC`
-   - `SPRING_DATASOURCE_USERNAME`: the database username
-   - `SPRING_DATASOURCE_PASSWORD`: the database password
-6. Deploy the Blueprint. Wait for the service health check to pass.
+3. Select this GitHub repository and the `main` branch.
+4. Render reads `render.yaml` and sets up the `footballhub-api` service.
+5. Add the database details as environment variables:
 
-The API health endpoint is `https://YOUR-RENDER-SERVICE.onrender.com/api/health`. It should return JSON with `"status":"ok"`.
+| Variable | Value |
+|---|---|
+| `SPRING_DATASOURCE_URL` | `jdbc:mysql://HOST:PORT/DATABASE?sslMode=REQUIRED&serverTimezone=UTC` |
+| `SPRING_DATASOURCE_USERNAME` | Your database username |
+| `SPRING_DATASOURCE_PASSWORD` | Your database password |
 
-Render's Free web service sleeps after inactivity. The first request after sleeping may take a while to respond.
+Replace the example parts of the database URL with the details from your provider.
 
-## 3. Connect Vercel to the API
+6. Deploy the service and check that its health check passes.
 
-The Vercel project is already connected to this GitHub repository. Its root directory is set to `footballhub-frontend`, with:
+The health endpoint is:
+
+`https://YOUR-RENDER-SERVICE.onrender.com/api/health`
+
+It should return a response showing that the API is running.
+
+## 3. Frontend on Vercel
+
+The Vercel project is connected to this GitHub repository. These are the frontend build settings:
+
+- Root directory: `footballhub-frontend`
 - Framework: Vite
-- Install: `npm ci`
-- Build: `npm run build`
-- Output: `dist`
+- Install command: `npm ci`
+- Build command: `npm run build`
+- Output directory: `dist`
 
-In Vercel → Project → Settings → Environment Variables, add:
+In the Vercel project settings, add this environment variable:
 
-- Key: `VITE_API_BASE_URL`
-- Value: `https://YOUR-RENDER-SERVICE.onrender.com/api`
-- Environments: Production, Preview, Development (select at least Production)
+| Variable | Value |
+|---|---|
+| `VITE_API_BASE_URL` | `https://YOUR-RENDER-SERVICE.onrender.com/api` |
 
-Save and redeploy the Vercel project. The value must end with `/api`.
+The URL must end with `/api`. Save the change and redeploy the frontend so it uses the correct backend address.
 
-## 4. Smoke test
+## 4. Test the website
 
-1. Open the Vercel production URL.
-2. Sign up or log in.
+After both parts are deployed, check the main features:
+
+1. Open the website.
+2. Create an account or log in.
 3. Search for a player and create a squad.
-4. Export the squad image.
-5. Create and join a Squad Battle room in two browser profiles/devices.
-6. Confirm the browser console has no CORS or failed API requests.
+4. Add players and a manager, then export the squad image.
+5. Open Squad Battle and test creating and joining a room from two browsers or devices.
+6. Try Football Imposter, Football Alphabet and Football Who Am I.
+7. Check the browser console if something is not loading or an API request fails.
 
-## Notes
+## Things to remember
 
-- Never use `localhost` in the production `VITE_API_BASE_URL`.
-- Keep database credentials only in Render environment variables.
-- The old default MySQL password was removed from the source configuration. If it was reused outside your local computer, rotate it because it was previously committed to a public repository.
+- Do not use `localhost` as the API address on the live website.
+- Keep database passwords in Render environment variables, not in the code.
+- Use a separate database for testing and previews. Do not connect test deployments to the live database.
+- The backend needs a working database connection before the website's account and squad features can work.

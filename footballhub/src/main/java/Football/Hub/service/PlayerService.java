@@ -53,7 +53,29 @@ public class PlayerService {
     }
 
     public List<Player> searchPlayersFromApi(String name) {
-        JsonNode root = sportsDbService.searchPlayers(name);
+        if (name == null || name.isBlank()) {
+            return new ArrayList<>();
+        }
+
+        // Reuse players already stored in the database before calling the external API.
+        List<Player> savedPlayers = searchPlayers(name.trim());
+        if (!savedPlayers.isEmpty()) {
+            return savedPlayers;
+        }
+
+        JsonNode root;
+
+        try {
+            root = sportsDbService.searchPlayers(name);
+        } catch (IllegalStateException e) {
+            // Keep squad building usable with any matching players already saved locally.
+            List<Player> fallbackPlayers = searchPlayers(name.trim());
+            if (!fallbackPlayers.isEmpty()) {
+                return fallbackPlayers;
+            }
+            throw e;
+        }
+
         JsonNode data = root.get("player");
         List<Player> players = new ArrayList<>();
 

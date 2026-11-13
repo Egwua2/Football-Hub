@@ -19,6 +19,9 @@ public class UserService {
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("(?=.{1,254}$)(?=.{1,64}@)[A-Za-z0-9_%+-]+(?:\\.[A-Za-z0-9_%+-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$");
 
+    private static final Pattern GMAIL_USERNAME_PATTERN =
+            Pattern.compile("(?=.{6,30}$)[A-Za-z0-9]+(?:\\.[A-Za-z0-9]+)*");
+
     public UserService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder) {
@@ -47,6 +50,16 @@ public class UserService {
         if (!EMAIL_PATTERN.matcher(email).matches()) {
             throw new IllegalArgumentException(
                     "Please enter a valid email address.");
+        }
+
+        String emailDomain = email.substring(email.lastIndexOf("@") + 1);
+
+        if ((emailDomain.equalsIgnoreCase("gmail.com") ||
+                emailDomain.equalsIgnoreCase("googlemail.com")) &&
+                !GMAIL_USERNAME_PATTERN.matcher(
+                        email.substring(0, email.lastIndexOf("@"))).matches()) {
+            throw new IllegalArgumentException(
+                    "Gmail usernames must be 6-30 characters and contain only letters, numbers and single periods.");
         }
 
         if (user.getPassword() == null ||

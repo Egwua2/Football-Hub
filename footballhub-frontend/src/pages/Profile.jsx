@@ -10,6 +10,7 @@ const POSITIONS = [
 
 function buildFormFromUser(user) {
   return {
+    username: user?.username || "",
     age: user?.age ?? "",
     gender: user?.gender || "",
     firstName: user?.firstName || "",
@@ -110,6 +111,7 @@ function Profile() {
           Authorization: `Bearer ${localStorage.getItem("footballHubToken") || ""}`,
         },
         body: JSON.stringify({
+          username: form.username.trim(),
           age,
           gender: form.gender || null,
           firstName: form.firstName.trim() || null,
@@ -244,6 +246,16 @@ function Profile() {
             {editError && <div className="auth-error">{editError}</div>}
 
             <div className="profile-section-title">Basic info</div>
+
+            <input
+              type="text"
+              name="username"
+              placeholder="Username"
+              value={form.username}
+              onChange={handleChange}
+              autoComplete="username"
+              required
+            />
 
             <input
               type="number"

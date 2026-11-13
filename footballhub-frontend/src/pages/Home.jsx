@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { UserRound, LogOut, Goal, Swords, ScanSearch, ListOrdered, CircleHelp } from "lucide-react";
+import { UserRound, LogOut, Hammer, Wrench, Swords, UserRoundSearch, ALargeSmall, CircleHelp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { authApi } from "../services/api";
 
@@ -145,7 +145,18 @@ function Home() {
         <div className="feature-grid">
 
           <Link to="/squad-builder" className="feature-card">
-            <div className="feature-icon"><Goal size={27} strokeWidth={1.8} /></div>
+            <div className="feature-icon" style={{ position: "relative" }}>
+              <Hammer
+                size={25}
+                strokeWidth={1.8}
+                style={{ position: "absolute", left: "10px", top: "14px", transform: "rotate(-42deg)" }}
+              />
+              <Wrench
+                size={25}
+                strokeWidth={1.8}
+                style={{ position: "absolute", right: "10px", top: "14px", transform: "rotate(42deg)" }}
+              />
+            </div>
             <h3>Squad Builder</h3>
             <p>
               Build your perfect XI with different formations and players.
@@ -163,7 +174,7 @@ function Home() {
           </Link>
 
           <Link to="/football-imposter" className="feature-card">
-            <div className="feature-icon"><ScanSearch size={27} strokeWidth={1.8} /></div>
+            <div className="feature-icon"><UserRoundSearch size={27} strokeWidth={1.8} /></div>
             <h3>Football Imposter</h3>
             <p>
               Find the imposter before they figure out the secret footballer.
@@ -172,7 +183,7 @@ function Home() {
           </Link>
 
           <Link to="/football-alphabet" className="feature-card">
-            <div className="feature-icon"><ListOrdered size={27} strokeWidth={1.8} /></div>
+            <div className="feature-icon"><ALargeSmall size={27} strokeWidth={1.8} /></div>
             <h3>Football Alphabet</h3>
             <p>
               Race the clock and name footballers for every letter.

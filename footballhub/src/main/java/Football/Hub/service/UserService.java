@@ -13,8 +13,11 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    private static final Pattern USERNAME_PATTERN =
+            Pattern.compile("(?=.{3,20}$)[A-Za-z0-9]+(?:[._-][A-Za-z0-9]+)*");
+
     private static final Pattern EMAIL_PATTERN =
-            Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+            Pattern.compile("(?=.{1,254}$)(?=.{1,64}@)[A-Za-z0-9_%+-]+(?:\.[A-Za-z0-9_%+-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$");
 
     public UserService(
             UserRepository userRepository,
@@ -26,16 +29,17 @@ public class UserService {
 
     public User register(User user) {
 
-        if (user.getUsername() == null ||
-                user.getUsername().isBlank()) {
+        String username = user.getUsername() == null
+                ? ""
+                : user.getUsername().trim();
+
+        if (!USERNAME_PATTERN.matcher(username).matches()) {
             throw new IllegalArgumentException(
-                    "Username is required.");
+                    "Username must be 3-20 characters and use letters, numbers, dots, underscores or hyphens. It must start and end with a letter or number.");
         }
 
-        if (user.getEmail() == null ||
-                user.getEmail().isBlank()) {
-            throw new IllegalArgumentException(
-                    "Email is required.");
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new IllegalArgumentException("Email is required.");
         }
 
         String email = user.getEmail().trim();
@@ -56,7 +60,7 @@ public class UserService {
                     "You must be at least 13 years old.");
         }
 
-        user.setUsername(user.getUsername().trim());
+        user.setUsername(username);
         user.setEmail(email);
 
         if (userRepository.existsByUsernameIgnoreCase(
@@ -114,12 +118,14 @@ public class UserService {
 
         User user = getUser(id);
 
-        if (updates.getUsername() == null ||
-                updates.getUsername().isBlank()) {
-            throw new IllegalArgumentException("Username is required.");
-        }
+        String username = updates.getUsername() == null
+                ? ""
+                : updates.getUsername().trim();
 
-        String username = updates.getUsername().trim();
+        if (!USERNAME_PATTERN.matcher(username).matches()) {
+            throw new IllegalArgumentException(
+                    "Username must be 3-20 characters and use letters, numbers, dots, underscores or hyphens. It must start and end with a letter or number.");
+        }
 
         if (userRepository.existsByUsernameIgnoreCaseAndIdNot(username, id)) {
             throw new IllegalArgumentException("Username is already taken.");

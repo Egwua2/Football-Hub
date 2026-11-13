@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CircleDot, Dices } from "lucide-react";
 import { useSessionState } from "../hooks/useSessionState";
 import { Link } from "react-router-dom";
 import { battleApi, getPlayerImageUrl } from "../services/api";
@@ -731,7 +732,7 @@ function SquadBattle() {
                     className="player-chip"
                     key={player.id}
                   >
-                    <span>⚽</span>
+                    <CircleDot size={17} />
 
                     <strong>
                       {player.playerName}
@@ -772,7 +773,7 @@ function SquadBattle() {
                         Select a category...
                       </option>
 
-                      <optgroup label="🏆 Leagues">
+                      <optgroup label="Leagues">
                         {lobby.categories
                           .filter((item) =>
                             [
@@ -795,7 +796,7 @@ function SquadBattle() {
                           ))}
                       </optgroup>
 
-                      <optgroup label="🔵 Clubs">
+                      <optgroup label="Clubs">
                         {lobby.categories
                           .filter((item) =>
                             [
@@ -826,7 +827,7 @@ function SquadBattle() {
                           ))}
                       </optgroup>
 
-                      <optgroup label="🌍 Countries & Regions">
+                      <optgroup label="Countries & Regions">
                         {lobby.categories
                           .filter((item) =>
                             [
@@ -857,7 +858,7 @@ function SquadBattle() {
                           ))}
                       </optgroup>
 
-                      <optgroup label="🏅 Competitions">
+                      <optgroup label="Competitions">
                         {lobby.categories
                           .filter((item) =>
                             [
@@ -882,7 +883,7 @@ function SquadBattle() {
                           ))}
                       </optgroup>
 
-                      <optgroup label="👶 Age & Generation">
+                      <optgroup label="Age & Generation">
                         {lobby.categories
                           .filter((item) =>
                             [
@@ -911,7 +912,7 @@ function SquadBattle() {
                           ))}
                       </optgroup>
 
-                      <optgroup label="👑 Special">
+                      <optgroup label="Special">
                         {lobby.categories
                           .filter((item) =>
                             [
@@ -945,7 +946,7 @@ function SquadBattle() {
                           ))}
                       </optgroup>
 
-                      <optgroup label="🧠 Playing Style & Other">
+                      <optgroup label="Playing Style & Other">
                         {lobby.categories
                           .filter((item) =>
                             [
@@ -1010,7 +1011,7 @@ function SquadBattle() {
                       onClick={randomCategory}
                       disabled={busy}
                     >
-                      🎲 Random Category
+                      <><Dices size={16} /> Random Category</>
                     </button>
 
                     <button

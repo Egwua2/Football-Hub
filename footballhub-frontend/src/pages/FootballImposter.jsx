@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Flame, Meh, ScanSearch, ShieldCheck, Sparkles } from "lucide-react";
 import { usePersistentState } from "../hooks/usePersistentState";
 import "./GamePages.css";
 
@@ -540,7 +541,7 @@ function FootballImposter() {
               }
               onClick={() => setHardMode((current) => !current)}
             >
-              {hardMode ? "🔥 Hard Mode: ON" : "😌 Hard Mode: OFF"}
+              {hardMode ? <><Flame size={16} /> Hard Mode: ON</> : <><Meh size={16} /> Hard Mode: OFF</>}
             </button>
 
             <button className="game-button" onClick={startGame}>
@@ -577,7 +578,7 @@ function FootballImposter() {
               <div className="secret-box">
                 {game.imposters.includes(revealIndex) ? (
                   <>
-                    <strong>YOU ARE AN IMPOSTER 🕵️</strong>
+                    <strong>YOU ARE AN IMPOSTER <ScanSearch size={17} /></strong>
                     <span>Category: {game.category}</span>
                     <small>
                       Blend in. Do not reveal that you don't know the player.
@@ -789,8 +790,8 @@ function FootballImposter() {
                 }
               >
                 {outcome === "imposter"
-                  ? "🕵️ Imposter Wins!"
-                  : "🛡️ Crew Wins!"}
+                  ? <><ScanSearch size={18} /> Imposter Wins!</>
+                  : <><ShieldCheck size={18} /> Crew Wins!</>}
               </strong>
 
               <span>The secret footballer was {game.secret}.</span>
@@ -817,7 +818,7 @@ function FootballImposter() {
                 <small>
                   Final guess: "{finalGuess.trim()}" —{" "}
                   {outcome === "imposter"
-                    ? "correct, nice steal 😈"
+                    ? <>correct, nice steal <Sparkles size={14} /></>
                     : "not quite"}
                 </small>
               )}

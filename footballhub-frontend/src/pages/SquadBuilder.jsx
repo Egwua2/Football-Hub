@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Zap, Brain, Image } from "lucide-react";
 import { Link } from "react-router-dom";
 import html2canvas from "html2canvas";
 import { getPlayerImageUrl, playerApi, squadApi } from "../services/api";
@@ -1095,7 +1096,7 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
       {showDailyMessage && (
         <div className="daily-squad-message">
           <div>
-            <span>⚡ DAILY SQUAD CHALLENGE</span>
+            <span><Zap size={15} /> DAILY SQUAD CHALLENGE</span>
             <p>{dailyMessage}</p>
           </div>
           <button onClick={() => setShowDailyMessage(false)} aria-label="Close message">×</button>
@@ -1260,7 +1261,7 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
               {manager ? (
                 <PlayerAvatar player={manager} small />
               ) : (
-                <div className="manager-icon">🧠</div>
+                <div className="manager-icon"><Brain size={26} /></div>
               )}
 
               <div>
@@ -1448,7 +1449,7 @@ const [squadPlayers, setSquadPlayers] = usePersistentState(
               onClick={exportPitch}
               disabled={playerCount === 0}
             >
-              🖼 Export Pitch
+              <><Image size={16} /> Export Pitch</>
             </button>
           </div>
         </section>

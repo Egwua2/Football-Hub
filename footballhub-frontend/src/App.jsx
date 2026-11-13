@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Sun, Moon, TrendingUp, Gem } from "lucide-react";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Profile from "./pages/Profile";
@@ -66,7 +67,7 @@ function App() {
             aria-label="Toggle theme"
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
-            {theme === "dark" ? "☀️" : "🌙"}
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
           <Routes>
@@ -141,7 +142,7 @@ function App() {
         </div>
 
         <footer className="site-footer">
-          Made by <strong>ΞGW∪Λ2📈💎</strong>
+          Made by <strong>ΞGW∪Λ2 <TrendingUp size={14} /> <Gem size={14} /></strong>
         </footer>
       </div>
     </BrowserRouter>

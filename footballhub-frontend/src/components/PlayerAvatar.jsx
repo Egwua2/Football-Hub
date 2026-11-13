@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CircleDot } from "lucide-react";
 import { getPlayerImageUrl } from "../services/api";
 
 function makeImageUrls(player) {
@@ -59,7 +60,7 @@ function PlayerAvatar({ player, small = false }) {
             : "player-avatar-placeholder"
         }
       >
-        ⚽
+        <CircleDot size={24} strokeWidth={1.8} />
       </div>
     );
   }

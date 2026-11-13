@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { ListOrdered } from "lucide-react";
 import { usePersistentState } from "../hooks/usePersistentState";
 import { playerApi } from "../services/api";
 import "./GamePages.css";
@@ -262,7 +263,7 @@ function FootballAlphabet() {
         <section className="game-grid two">
           <div className="game-card">
             <span className="step">FINAL SCORES</span>
-            <h2>Alphabet finished 🔤</h2>
+            <h2>Alphabet finished <ListOrdered size={22} /></h2>
             <div className="results">
               {cleanNames
                 .map((name, index) => ({ name, index, count: game.scores[index] }))

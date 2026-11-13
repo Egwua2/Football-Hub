@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Clock, CircleDot, RectangleVertical, ShieldCheck, Trophy, Medal } from "lucide-react";
 import "./GamePages.css";
 
 const FOOTBALLERS = [
@@ -66,17 +67,17 @@ const FOOTBALLERS = [
 const DIFFICULTIES = {
   Easy: {
     wrongGuesses: 3,
-    cards: ["🟨", "🟨", "🟥"],
+    cards: ["yellow", "yellow", "red"],
     description: "Two yellow cards, then a red card (3 wrong guesses)."
   },
   Medium: {
     wrongGuesses: 2,
-    cards: ["🟨", "🟥"],
+    cards: ["yellow", "red"],
     description: "A yellow card, then a red card (2 wrong guesses)."
   },
   Hard: {
     wrongGuesses: 1,
-    cards: ["🟥"],
+    cards: ["red"],
     description: "One wrong guess earns a red card and eliminates you."
   }
 };
@@ -107,6 +108,20 @@ function getOrdinal(number) {
   if (number === 2) return "2nd";
   if (number === 3) return "3rd";
   return `${number}th`;
+}
+
+function WarningCardIcon({ card, size = 16 }) {
+  const isRed = card === "red";
+
+  return (
+    <RectangleVertical
+      size={size}
+      color={isRed ? "#ef5350" : "#f4c542"}
+      fill={isRed ? "rgba(239, 83, 80, 0.18)" : "rgba(244, 197, 66, 0.18)"}
+      strokeWidth={2.2}
+      aria-label={isRed ? "Red card" : "Yellow card"}
+    />
+  );
 }
 
 function FootballWhoAmI() {
@@ -413,7 +428,7 @@ function FootballWhoAmI() {
     const eliminated =
       newWrongGuesses >= game.wrongGuessesAllowed;
     const cardReceived =
-      DIFFICULTIES[game.difficulty].cards[newWrongGuesses - 1] || "🟥";
+      DIFFICULTIES[game.difficulty].cards[newWrongGuesses - 1] || "red";
 
     const updatedStates = game.playerStates.map(
       (player, index) =>
@@ -456,7 +471,7 @@ function FootballWhoAmI() {
 
     setError(
       `Wrong footballer! You received a ${
-        cardReceived === "🟥" ? "red card" : "yellow card"
+        cardReceived === "red" ? "red card" : "yellow card"
       }.`
     );
   }
@@ -865,7 +880,7 @@ function FootballWhoAmI() {
                     <span>{settings.description}</span>
                   </div>
                   <div className="difficulty-cards">
-                    <span>{modeName === "Timer" ? "⏱️" : "⚽"}</span>
+                    <span>{modeName === "Timer" ? <Clock size={18} /> : <CircleDot size={18} />}</span>
                   </div>
                 </button>
               ))}
@@ -905,7 +920,7 @@ function FootballWhoAmI() {
                 The cards depend on difficulty. A red card eliminates the player.
               </p>
 
-              <div className="card-rule-display">🟨 → 🟨 → 🟥</div>
+              <div className="card-rule-display"><WarningCardIcon card="yellow" size={18} /> <span>→</span> <WarningCardIcon card="yellow" size={18} /> <span>→</span> <WarningCardIcon card="red" size={18} /></div>
             </div>
 
             <button
@@ -1044,21 +1059,15 @@ function FootballWhoAmI() {
                     <strong>{player.playerName}</strong>
 
                     <span>
-                      {player.timedOut
-                        ? "⏱️ Time Up"
-                        : player.correct
-                          ? `🏅 ${getPlacement(player)}${
-                              getPlacement(player) === 1
-                                ? "st"
-                                : getPlacement(player) === 2
-                                  ? "nd"
-                                  : getPlacement(player) === 3
-                                    ? "rd"
-                                    : "th"
-                            } Place${game.mode === "Timer" && player.timeUsedSeconds != null ? ` · ${formatTime(player.timeUsedSeconds)}` : ""}`
-                          : player.wrongGuesses === 0
-                            ? "✅ Clean Sheet"
-                            : `${getWarnings(player).join(" ")}${player.eliminated ? " · Eliminated" : ""}`}
+                      {player.timedOut ? (
+                        <><Clock size={14} /> Time Up</>
+                      ) : player.correct ? (
+                        <><Medal size={14} /> {getPlacement(player)}{getPlacement(player) === 1 ? "st" : getPlacement(player) === 2 ? "nd" : getPlacement(player) === 3 ? "rd" : "th"} Place{game.mode === "Timer" && player.timeUsedSeconds != null ? ` · ${formatTime(player.timeUsedSeconds)}` : ""}</>
+                      ) : player.wrongGuesses === 0 ? (
+                        <><ShieldCheck size={14} /> Clean Sheet</>
+                      ) : (
+                        <>{getWarnings(player).map((card, cardIndex) => <WarningCardIcon key={cardIndex} card={card} />)}{player.eliminated ? " · Eliminated" : ""}</>
+                      )}
                     </span>
                   </button>
                 );
@@ -1107,11 +1116,11 @@ function FootballWhoAmI() {
                     <strong>Warnings:</strong>
                     <span>
                       {game.playerStates[guessIndex].wrongGuesses === 0 ? (
-                        <span>✅ Clean Sheet</span>
+                        <span><ShieldCheck size={15} /> Clean Sheet</span>
                       ) : (
                         getWarnings(game.playerStates[guessIndex]).map((card, index) => (
                           <span key={index}>
-                            {card} {card === "🟥" ? "Red Card" : "Yellow Card"}
+                            <WarningCardIcon card={card} size={15} /> {card === "red" ? "Red Card" : "Yellow Card"}
                           </span>
                         ))
                       )}
@@ -1199,7 +1208,7 @@ function FootballWhoAmI() {
                 FULL TIME · WHO AM I?
               </span>
 
-              <div className="winner-icon">🏆</div>
+              <div className="winner-icon"><Trophy size={34} /></div>
 
               <h2>Final Results</h2>
 
@@ -1219,7 +1228,7 @@ function FootballWhoAmI() {
                   boxShadow: "0 0 0 1px rgba(244, 201, 93, 0.16), 0 12px 32px rgba(0, 0, 0, 0.20)"
                 }}
               >
-                <span style={{ color: "#ffdb70" }}>🏆 OVERALL WINNER</span>
+                <span style={{ color: "#ffdb70" }}><Trophy size={15} /> OVERALL WINNER</span>
                 <strong>{timerStandings[0].playerName}</strong>
                 <small>
                   Lowest overall time · Total: <b>{formatTime(timerStandings[0].cumulativeSeconds)}</b> across {game.totalRounds} rounds
@@ -1234,7 +1243,7 @@ function FootballWhoAmI() {
                   boxShadow: "0 0 0 1px rgba(244, 201, 93, 0.14), 0 12px 32px rgba(0, 0, 0, 0.20)"
                 }}
               >
-                <span style={{ color: "#ffdb70" }}>🏆 WINNER</span>
+                <span style={{ color: "#ffdb70" }}><Trophy size={15} /> WINNER</span>
                 <strong>{game.playerStates[finishOrder[0]].playerName}</strong>
                 <small>
                   Correctly identified <b>{game.playerStates[finishOrder[0]].footballer}</b>
@@ -1263,7 +1272,7 @@ function FootballWhoAmI() {
                     return (
                       <div className={`who-am-i-podium-card ${podiumClass}`} key={player.playerName}>
                         <div className="podium-medal">
-                          {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `#${index + 1}`}
+                          {index < 3 ? <Medal size={25} color={index === 0 ? "#f4c95d" : index === 1 ? "#b9c5d2" : "#bd865a"} /> : `#${index + 1}`}
                         </div>
                         <strong>{player.playerName}</strong>
                         <span>{player.footballer}</span>
@@ -1307,7 +1316,7 @@ function FootballWhoAmI() {
                         fontWeight: 800,
                         whiteSpace: "nowrap"
                       }}>
-                        {index === 0 ? "🏆 1ST" : getOrdinal(index + 1).toUpperCase()}
+                        {index === 0 ? <><Trophy size={14} /> 1ST</> : getOrdinal(index + 1).toUpperCase()}
                       </span>
                       <strong>{player.playerName}</strong>
                     </div>
@@ -1343,10 +1352,10 @@ function FootballWhoAmI() {
                         letterSpacing: "0.03em",
                         whiteSpace: "nowrap"
                       }}>
-                        {player.correct ? (player.placement === 1 ? "🥇 1ST" : player.placement === 2 ? "🥈 2ND" : player.placement === 3 ? "🥉 3RD" : getOrdinal(player.placement).toUpperCase()) : player.timedOut ? "TIME UP" : "OUT"}
+                        {player.correct ? (player.placement <= 3 ? <><Medal size={14} /> {getOrdinal(player.placement).toUpperCase()}</> : getOrdinal(player.placement).toUpperCase()) : player.timedOut ? <><Clock size={14} /> TIME UP</> : <><WarningCardIcon card="red" size={14} /> OUT</>}
                       </span>
                       <strong>{player.playerName}</strong>
-                      <span>{player.correct ? `Finished ${getOrdinal(player.placement)} place` : player.timedOut ? "⏱️ Time expired" : "🟥 Eliminated"}</span>
+                      <span>{player.correct ? `Finished ${getOrdinal(player.placement)} place` : player.timedOut ? <><Clock size={14} /> Time expired</> : <><WarningCardIcon card="red" size={14} /> Eliminated</>}</span>
                     </div>
                     <div className="final-player-secret">
                       <small>Secret footballer</small>

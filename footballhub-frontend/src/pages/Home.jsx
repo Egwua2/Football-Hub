@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { UserRound, LogOut, Goal, Swords, ScanSearch, ListOrdered, CircleHelp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { authApi } from "../services/api";
 
@@ -67,7 +68,7 @@ function Home() {
                 className="profile-dropdown-item"
                 onClick={() => setProfileOpen(false)}
               >
-                <span>👤</span>
+                <UserRound size={17} />
                 Profile
               </Link>
 
@@ -75,7 +76,7 @@ function Home() {
                 className="profile-dropdown-item logout-menu-item"
                 onClick={logout}
               >
-                <span>🚪</span>
+                <LogOut size={17} />
                 Log Out
               </button>
 
@@ -144,7 +145,7 @@ function Home() {
         <div className="feature-grid">
 
           <Link to="/squad-builder" className="feature-card">
-            <div className="feature-icon">🏟️</div>
+            <div className="feature-icon"><Goal size={27} strokeWidth={1.8} /></div>
             <h3>Squad Builder</h3>
             <p>
               Build your perfect XI with different formations and players.
@@ -153,7 +154,7 @@ function Home() {
           </Link>
 
           <Link to="/squad-battle" className="feature-card">
-            <div className="feature-icon">⚔️</div>
+            <div className="feature-icon"><Swords size={27} strokeWidth={1.8} /></div>
             <h3>Squad Battle</h3>
             <p>
               Build squads against other players and decide the winner.
@@ -162,7 +163,7 @@ function Home() {
           </Link>
 
           <Link to="/football-imposter" className="feature-card">
-            <div className="feature-icon">🕵️</div>
+            <div className="feature-icon"><ScanSearch size={27} strokeWidth={1.8} /></div>
             <h3>Football Imposter</h3>
             <p>
               Find the imposter before they figure out the secret footballer.
@@ -171,7 +172,7 @@ function Home() {
           </Link>
 
           <Link to="/football-alphabet" className="feature-card">
-            <div className="feature-icon">🔤</div>
+            <div className="feature-icon"><ListOrdered size={27} strokeWidth={1.8} /></div>
             <h3>Football Alphabet</h3>
             <p>
               Race the clock and name footballers for every letter.
@@ -180,7 +181,7 @@ function Home() {
           </Link>
 
           <Link to="/football-who-am-i" className="feature-card">
-            <div className="feature-icon">❓</div>
+            <div className="feature-icon"><CircleHelp size={27} strokeWidth={1.8} /></div>
             <h3>Football Who Am I</h3>
             <p>
               Guess the mystery footballer using clues before the others do.

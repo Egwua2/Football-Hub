@@ -62,16 +62,13 @@ function Profile() {
       .catch(() => {});
   }, []);
 
-  async function logout() {
-    try {
-      await authApi.logout();
-    } catch {
-      // Clear the local session even if the server cannot be reached.
-    }
+  function logout() {
+    // Clear the local session immediately; let the server request finish in the background.
+    authApi.logout().catch(() => {});
 
     localStorage.removeItem("footballHubToken");
     localStorage.removeItem("footballHubUser");
-    navigate("/login");
+    navigate("/login", { replace: true });
   }
 
   function handleChange(e) {

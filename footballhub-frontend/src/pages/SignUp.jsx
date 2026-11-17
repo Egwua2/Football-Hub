@@ -92,6 +92,7 @@ function SignUp() {
       return;
     }
 
+    window.dispatchEvent(new Event("footballHub:startMusic"));
     setLoading(true);
 
     try {

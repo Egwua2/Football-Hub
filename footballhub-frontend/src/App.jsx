@@ -10,6 +10,9 @@ import SquadBattle from "./pages/SquadBattle";
 import FootballImposter from "./pages/FootballImposter";
 import FootballAlphabet from "./pages/FootballAlphabet";
 import FootballWhoAmI from "./pages/FootballWhoAmI";
+import MusicPlayer from "./components/MusicPlayer";
+import { API_BASE_URL } from "./services/api";
+import "./music-player.css";
 
 function ProtectedRoute({ children }) {
   const user = localStorage.getItem("footballHubUser");
@@ -50,6 +53,42 @@ function App() {
     localStorage.setItem("footballHubTheme", theme);
   }, [theme]);
 
+  useEffect(() => {
+    if (!API_BASE_URL) return undefined;
+
+    let lastPing = 0;
+
+    function pingBackend() {
+      if (document.visibilityState !== "visible") return;
+
+      lastPing = Date.now();
+      fetch(`${API_BASE_URL}/health`, {
+        cache: "no-store",
+        keepalive: true,
+      }).catch(() => {});
+    }
+
+    pingBackend();
+
+    const interval = window.setInterval(pingBackend, 10 * 60 * 1000);
+
+    function handleVisibilityChange() {
+      if (
+        document.visibilityState === "visible" &&
+        Date.now() - lastPing > 60 * 1000
+      ) {
+        pingBackend();
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
   function toggleTheme() {
     setTheme((current) => (current === "dark" ? "light" : "dark"));
   }
@@ -57,6 +96,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthRedirectHandler />
+      <MusicPlayer />
 
       <div className="app-wrapper">
         <div className="app-content">

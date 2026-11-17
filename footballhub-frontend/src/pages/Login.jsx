@@ -29,6 +29,7 @@ function Login() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    window.dispatchEvent(new Event("footballHub:startMusic"));
     setLoading(true);
 
     try {
